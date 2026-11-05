@@ -1,0 +1,15 @@
+node_modules
+.output
+.nitro
+.tanstack
+data
+data-*
+.env
+.env.*
+!.env.example
+test-results
+playwright-report
+.git
+.claude
+.agents
+*.log

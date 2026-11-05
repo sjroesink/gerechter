@@ -1,0 +1,10 @@
+pnpm-lock.yaml
+src/routeTree.gen.ts
+.output
+.nitro
+.tanstack
+data
+openspec
+.claude
+.agents
+drizzle

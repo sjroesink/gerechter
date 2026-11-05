@@ -1,0 +1,35 @@
+# Lokaal: `docker compose up -d`. Op Unraid dezelfde opzet via Compose Manager (zie README).
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gerechter
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gerechter}
+      POSTGRES_DB: gerechter
+    ports:
+      # Alleen voor lokale ontwikkeling (pnpm dev, tests); op een server kan deze regel weg.
+      - '127.0.0.1:${DB_PORT:-5432}:5432'
+    volumes:
+      - ${DATA_DIR:-./data}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U gerechter -d gerechter']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    image: gerechter:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://gerechter:${POSTGRES_PASSWORD:-gerechter}@db:5432/gerechter
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      PORT: 3000
+    ports:
+      - '${APP_PORT:-3000}:3000'
