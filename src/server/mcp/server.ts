@@ -9,6 +9,7 @@ import { registerPantryTools } from './pantry'
 import { registerPlanningTools } from './planning'
 import { registerCookingTools } from './cooking'
 import { registerShoppingTools } from './shopping'
+import { registerAhProductTools } from './ah-products'
 import type { ShoppingDeps } from '~/domain/shopping-target'
 import { tool } from './context-tool'
 import { registerHouseholdTools } from './households'
@@ -34,6 +35,7 @@ export function buildMcpServer(
   registerPlanningTools(server, getCtx)
   registerCookingTools(server, getCtx)
   registerShoppingTools(server, getCtx, shopping)
+  registerAhProductTools(server, getCtx, shopping)
 
   server.registerTool(
     'whoami',

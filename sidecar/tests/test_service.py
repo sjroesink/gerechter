@@ -12,7 +12,7 @@ from cryptography.exceptions import InvalidTag
 from gerechter_ah.service import Settings, create_app
 from gerechter_ah.store import Store
 
-from .conftest import SECRET, Backend, System
+from .conftest import SECRET, Backend, System, text_line
 
 
 async def test_server_and_connection_authentication_do_not_touch_ah(system: System):
@@ -238,7 +238,7 @@ async def test_connections_and_identical_export_ids_remain_separate(system: Syst
 async def test_disconnect_removes_tokens_and_prevents_pending_work(system: System):
     connection = await system.connect()
     cid, eid = connection["connection_id"], str(uuid4())
-    system.app.state.store.reserve(cid, eid, ["Niet toevoegen"])
+    system.app.state.store.reserve(cid, eid, [text_line("Niet toevoegen")])
     response = await system.client.delete(
         f"/connections/{cid}", headers={"X-Connection-Key": connection["connection_key"]}
     )
@@ -324,7 +324,7 @@ async def test_restart_keeps_job_but_does_not_resume_inflight_write(tmp_path):
             await client.post("/connections", json={"household_id": str(uuid4()), "code": "code"})
         ).json()
     cid, eid = connection["connection_id"], str(uuid4())
-    app.state.store.reserve(cid, eid, ["100 g Rijst"])
+    app.state.store.reserve(cid, eid, [text_line("100 g Rijst")])
     app.state.store.set_job(cid, eid, "running", "Gestart")
     app.state.store.set_line(cid, eid, 0, "inflight")
     restarted = create_app(settings, backend.transport)

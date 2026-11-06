@@ -17,6 +17,7 @@ Uitbreiding op verzoek van de gebruiker: voeg via de aangemelde MCP-koppeling **
 | ah-sidecar | Experimentele AH-provider via een interne Python-sidecar met python-appie | 7/7 afgerond; 23 Python-tests en 10 gerichte Node-contracttests groen na tekstpayloadcorrectie; Docker gezond, live account uitleesbaar; nieuwe live export nog niet getest |
 | recipe-import | Aanvullend verzoek: recept importeren van een URL via MCP (`fetch_recipe_from_url`), eigen kopie van gerechtfoto's met bronverwijzing, SSRF-veilige uitgaande fetch | 6/7 afgerond; 244 TypeScript-tests en 47 browsertests groen, live uitgelezen van leukerecepten.nl en BBC Good Food (AH Allerhande weigert met 403); import via de echte aangemelde MCP-client nog te doen |
 | ingredient-images | Aanvullend verzoek: afbeeldingen per ingrediënt met bronvermelding, UI en MCP | 5/5 afgerond; 199 TypeScript-tests en 47 browsertests voor de basis, plus 23 gerichte tests en echte mobiele browsercontrole voor boodschappenfoto's; 38 bestaande ingrediënten via MCP van gecontroleerde beelden voorzien |
+| ah-products | Aanvullend verzoek: ingrediënten per huishouden koppelen aan AH-producten (app en MCP), aantal verpakkingen berekenen, productregels in de AH-export opgeteld bij wat al op de lijst staat | 10/10 afgerond; 275 TypeScript-tests, 59 Python-tests en 56 browsertests groen; lokale sidecar herbouwd, gezond en bestaande SQLite in-place bijgewerkt. Live AH-zoeken/-export nog niet gecontroleerd |
 
 ## Doorlopende eisen
 

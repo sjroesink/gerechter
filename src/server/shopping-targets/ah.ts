@@ -1,10 +1,13 @@
 import { z } from 'zod'
 import { Invalid } from '~/domain/core'
 import type {
+  AhProductResult,
+  AhProductSearch,
   ShoppingProviderRequest,
   ShoppingProviderResult,
   ShoppingTarget,
 } from '~/domain/shopping-target'
+import type { ShoppingNeeds } from '~/domain/shopping-types'
 
 export type AhSidecarConfig = { url: string; secret: string }
 export type AhReference = { connectionId: string; connectionKey: string }
@@ -28,6 +31,34 @@ const jobInput = z
     verified_absent: z.boolean().optional(),
   })
   .refine((value) => value.completed <= value.total)
+const productInput = z.object({
+  products: z
+    .array(
+      z.object({
+        id: z.number().int().positive(),
+        title: z.string().min(1).max(500),
+        brand: z.string().max(200).nullable().optional(),
+        price: z.number().nonnegative().nullable().optional(),
+        is_bonus: z.boolean().nullable().optional(),
+        bonus_label: z.string().max(200).nullable().optional(),
+        unit_size: z.string().max(200).nullable().optional(),
+        image_url: z.string().max(2000).nullable().optional(),
+      }),
+    )
+    .max(30),
+})
+/** Old snapshots predate product links and only have text lines. */
+export function ahExportBody(needs: ShoppingNeeds) {
+  const items = needs.ahItems ?? needs.lines.map((description) => ({ kind: 'text' as const, description }))
+  return {
+    lines: items.flatMap((item) => (item.kind === 'text' ? [item.description] : [])),
+    products: items.flatMap((item) =>
+      item.kind === 'product'
+        ? [{ product_id: item.productId, quantity: item.quantity, description: item.description }]
+        : [],
+    ),
+  }
+}
 const uncertain = (runId: string): ShoppingProviderResult => ({
   status: 'uncertain',
   externalId: runId,
@@ -127,12 +158,45 @@ export function ahSidecar(config: AhSidecarConfig, fetcher: typeof fetch = fetch
         return false
       }
     },
+    products: {
+      async search(connection, query, limit) {
+        let response: Response
+        try {
+          response = await request(
+            `/connections/${encodeURIComponent(connection.destinationId)}/products?${new URLSearchParams({ query, limit: String(limit) })}`,
+            { key: connection.secret },
+          )
+        } catch {
+          throw new Invalid('De AH-service is niet bereikbaar. Probeer het later opnieuw.')
+        }
+        if (response.status === 404)
+          throw new Invalid('De AH-verbinding is niet meer geldig. Laat een eigenaar AH opnieuw koppelen.')
+        if (!response.ok) throw new Invalid('Zoeken bij AH is niet gelukt. Probeer het later opnieuw.')
+        const parsed = productInput.safeParse(await response.json().catch(() => null))
+        if (!parsed.success) throw new Invalid('De AH-service gaf geen geldige zoekresultaten.')
+        return parsed.data.products.map((product): AhProductResult => ({
+          id: product.id,
+          title: product.title,
+          brand: product.brand ?? null,
+          price: product.price ?? null,
+          isBonus: product.is_bonus ?? null,
+          bonusLabel: product.bonus_label ?? null,
+          unitSize: product.unit_size ?? null,
+          imageUrl: product.image_url?.startsWith('https://') ? product.image_url : null,
+        }))
+      },
+    } satisfies AhProductSearch,
     target: {
       async send(input: ShoppingProviderRequest) {
+        const body = ahExportBody(input.needs)
         if (
           !input.connection ||
-          input.needs.lines.length > 500 ||
-          input.needs.lines.some((line) => !line.length || line.length > 2000)
+          !(body.lines.length + body.products.length) ||
+          body.lines.length > 500 ||
+          body.products.length > 500 ||
+          [...body.lines, ...body.products.map((item) => item.description)].some(
+            (line) => !line.length || line.length > 2000,
+          )
         )
           return {
             status: 'failed',
@@ -143,7 +207,7 @@ export function ahSidecar(config: AhSidecarConfig, fetcher: typeof fetch = fetch
             await request(`/connections/${encodeURIComponent(input.connection.destinationId)}/exports`, {
               method: 'POST',
               key: input.connection.secret,
-              body: { export_id: input.runId, lines: input.needs.lines },
+              body: { export_id: input.runId, ...body },
             }),
             input.runId,
           )

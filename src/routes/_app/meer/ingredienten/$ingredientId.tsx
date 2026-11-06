@@ -1,10 +1,12 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState, type FormEvent } from 'react'
+import { AhProductPicker, AhProductSummary } from '~/components/ah-product-picker'
 import { IngredientForm } from '~/components/ingredient-form'
 import { IngredientHeader } from '~/components/ingredient-header'
 import { IngredientPhoto } from '~/components/ingredient-photo'
 import { Button, DetailHeader, Field, Notice, Page, SectionTitle } from '~/components/ui'
 import { measurementUnit, UNITS } from '~/domain/units'
+import { unlinkAhProductFn } from '~/server/ah-products.functions'
 import type { ActionResult } from '~/server/fn'
 import {
   archiveIngredientFn,
@@ -26,6 +28,7 @@ function IngredientPage() {
   const result = Route.useLoaderData()
   const router = useRouter()
   const [editing, setEditing] = useState(false)
+  const [pickingAh, setPickingAh] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   async function run(action: () => Promise<ActionResult<unknown>>) {
@@ -119,6 +122,56 @@ function IngredientPage() {
               />
             )}
           </>
+        )}
+        {item.ah && (
+          <section className="flex flex-col gap-3" aria-label="AH-product">
+            <SectionTitle>AH-product</SectionTitle>
+            <p className="px-1 text-[15px] text-ink-2">
+              Met een gekoppeld product zet een AH-export dit product met het juiste aantal op je lijst, in
+              plaats van een tekstregel. Geldt alleen voor je eigen huishouden.
+            </p>
+            {item.ah.link && !pickingAh && (
+              <div className="flex flex-col gap-3 rounded-[20px] bg-surface p-4">
+                <AhProductSummary link={item.ah.link} baseUnit={item.baseUnit} />
+                <div className="flex flex-wrap gap-2">
+                  {item.ah.connected && (
+                    <Button variant="secondary" disabled={busy} onClick={() => setPickingAh(true)}>
+                      Ander product
+                    </Button>
+                  )}
+                  <Button
+                    variant="danger"
+                    disabled={busy}
+                    onClick={() => run(() => unlinkAhProductFn({ data: { ingredientId: item.id } }))}
+                  >
+                    Ontkoppelen
+                  </Button>
+                </div>
+              </div>
+            )}
+            {!item.ah.link && !pickingAh && item.ah.connected && (
+              <Button variant="secondary" onClick={() => setPickingAh(true)}>
+                AH-product koppelen
+              </Button>
+            )}
+            {!item.ah.connected && (
+              <Notice>
+                Laat een eigenaar eerst AH koppelen bij Boodschappen › Verbindingen om te zoeken.
+              </Notice>
+            )}
+            {pickingAh && (
+              <AhProductPicker
+                ingredientId={item.id}
+                ingredientName={item.name}
+                baseUnit={item.baseUnit}
+                onCancel={() => setPickingAh(false)}
+                onSaved={async () => {
+                  setPickingAh(false)
+                  await router.invalidate()
+                }}
+              />
+            )}
+          </section>
         )}
         <section className="flex flex-col gap-3">
           <SectionTitle>Omrekeningen</SectionTitle>

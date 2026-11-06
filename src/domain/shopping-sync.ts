@@ -191,6 +191,16 @@ export async function getAhConnectionReference(ctx: Ctx, secret: string) {
       }
     : null
 }
+/** Server-only: lets any member use the household's AH connection for read-only product search. */
+export async function getAhConnectionForMember(ctx: Ctx, secret: string) {
+  const connection = await connectionFor(ctx, 'ah')
+  return connection
+    ? {
+        destinationId: connection.destinationId,
+        secret: openShoppingSecret(connection.encryptedSecret, secret, ctx.household.id),
+      }
+    : null
+}
 export async function getSyncRun(ctx: Ctx, runId: string) {
   const row = await findRun(ctx, runId)
   return {

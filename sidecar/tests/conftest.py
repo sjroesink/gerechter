@@ -13,13 +13,42 @@ import pytest
 from fastapi import FastAPI
 
 from gerechter_ah.service import Settings, create_app
+from gerechter_ah.store import LineInput
 
 SECRET = "sidecar-test-secret-with-at-least-32-characters"
+SEARCH_PATH = "/mobile-services/product/search/v2"
+PRODUCT_KEYS = {"productId", "quantity", "type", "originCode", "description", "searchTerm"}
+
+# Raw AH search payloads, mapped by python-appie's real ProductsAPI.
+CATALOG: list[dict[str, Any]] = [
+    {
+        "webshopId": 1525,
+        "title": "AH Uien",
+        "brand": "AH",
+        "currentPrice": 1.29,
+        "isBonus": False,
+        "salesUnitSize": "1 kg",
+        "images": [{"url": "https://static.ah.nl/uien.jpg"}],
+    },
+    {
+        "webshopId": 4471,
+        "title": "AH Trostomaten",
+        "brand": "AH",
+        "priceBeforeBonus": 2.49,
+        "bonusMechanism": "2e halve prijs",
+        "salesUnitSize": "500 g",
+        "images": [{"url": "https://static.ah.nl/tomaten.jpg"}],
+    },
+]
 
 
 class Backend:
     def __init__(self) -> None:
         self.items: dict[str, dict[str, int]] = defaultdict(dict)
+        # product_id -> {"description": ..., "quantity": ...}; the PATCH quantity is absolute.
+        self.products: dict[str, dict[int, dict[str, Any]]] = defaultdict(dict)
+        self.catalog: list[dict[str, Any]] = [dict(product) for product in CATALOG]
+        self.search_failure: str | None = None
         self.calls: list[dict[str, Any]] = []
         self.failures: dict[str, str] = {}
         self.fail_reads = False
@@ -34,6 +63,7 @@ class Backend:
                     "connection": connection_id,
                     "method": request.method,
                     "path": request.url.path,
+                    "params": dict(request.url.params),
                     "body": body,
                     "authorization": request.headers.get("authorization"),
                 }
@@ -59,6 +89,17 @@ class Backend:
                         "expires_in": 3600,
                     },
                 )
+            if request.method == "GET" and request.url.path == SEARCH_PATH:
+                if self.search_failure == "timeout":
+                    raise httpx.ReadTimeout("private-token timeout", request=request)
+                if self.search_failure:
+                    return httpx.Response(
+                        int(self.search_failure), json={"detail": "private search detail"}
+                    )
+                query = request.url.params["query"].casefold()
+                size = int(request.url.params["size"])
+                found = [p for p in self.catalog if query in p["title"].casefold()]
+                return httpx.Response(200, json={"products": found[:size]})
             if request.method == "GET":
                 if self.fail_reads:
                     return httpx.Response(403, json={"detail": "private server detail"})
@@ -69,13 +110,34 @@ class Backend:
                             {"description": description, "quantity": quantity}
                             for description, quantity in self.items[connection_id].items()
                         ]
+                        + [
+                            {
+                                "description": product["description"],
+                                "quantity": product["quantity"],
+                                "productDetails": {
+                                    "product": {
+                                        "webshopId": product_id,
+                                        "title": product["description"],
+                                    }
+                                },
+                            }
+                            for product_id, product in self.products[connection_id].items()
+                        ]
                     },
                 )
             assert request.method == "PATCH"
             if self.write_gate is not None:
                 await self.write_gate.wait()
             item = body["items"][0]
-            if (
+            is_product = "productId" in item
+            if is_product and (
+                set(item) != PRODUCT_KEYS
+                or not isinstance(item["productId"], int)
+                or item["type"] != "SHOPPABLE"
+                or item["originCode"] != "PRD"
+            ):
+                return httpx.Response(400, json={"detail": "Invalid product payload"})
+            if not is_product and (
                 item.get("originCode") != "PRD"
                 or item.get("strikeThrough") is not False
                 or item.get("type") != "SHOPPABLE"
@@ -92,7 +154,13 @@ class Backend:
                 )
             if failure == "timeout-before":
                 raise httpx.ReadTimeout("private-token timeout", request=request)
-            self.items[connection_id][description] = item["quantity"]
+            if is_product:
+                self.products[connection_id][item["productId"]] = {
+                    "description": description,
+                    "quantity": item["quantity"],
+                }
+            else:
+                self.items[connection_id][description] = item["quantity"]
             if failure == "timeout-after":
                 raise httpx.ReadTimeout("private-token timeout", request=request)
             return httpx.Response(200, json={"items": [item]})
@@ -118,15 +186,31 @@ class System:
         return response.json()
 
     async def start(
-        self, connection: dict[str, str], lines: list[str], export_id: str | None = None
+        self,
+        connection: dict[str, str],
+        lines: list[str],
+        export_id: str | None = None,
+        products: list[dict[str, Any]] | None = None,
     ):
         export_id = export_id or str(uuid4())
+        payload: dict[str, Any] = {"export_id": export_id, "lines": lines}
+        if products is not None:
+            payload["products"] = products
         response = await self.client.post(
             f"/connections/{connection['connection_id']}/exports",
-            json={"export_id": export_id, "lines": lines},
+            json=payload,
             headers={"X-Connection-Key": connection["connection_key"]},
         )
         return export_id, response
+
+    async def search(
+        self, connection: dict[str, str], params: dict[str, Any], key: str | None = None
+    ) -> httpx.Response:
+        return await self.client.get(
+            f"/connections/{connection['connection_id']}/products",
+            params=params,
+            headers={"X-Connection-Key": connection["connection_key"] if key is None else key},
+        )
 
     async def status(self, connection: dict[str, str], export_id: str, check: bool = False):
         return await self.client.get(
@@ -160,3 +244,7 @@ async def system(tmp_path: Path):
         ) as client,
     ):
         yield System(app, client, backend, settings)
+
+
+def text_line(description: str) -> LineInput:
+    return {"description": description, "product_id": None, "quantity": 1}

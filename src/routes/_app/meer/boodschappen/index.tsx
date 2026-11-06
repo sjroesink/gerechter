@@ -183,7 +183,10 @@ function ShoppingPage() {
         </details>
         {needs ? (
           <>
-            <ShoppingNeedsView needs={needs} />
+            <ShoppingNeedsView
+              needs={needs}
+              ah={target === 'ah' && chosen ? { onLinked: () => router.invalidate() } : undefined}
+            />
             {needs.lines.length > 0 && (
               <section className="flex flex-col gap-2.5" aria-label="Waarheen?">
                 <SectionTitle>Waarheen?</SectionTitle>

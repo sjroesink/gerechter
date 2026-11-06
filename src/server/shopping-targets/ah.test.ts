@@ -89,7 +89,11 @@ describe('AH-sidecarcontract', () => {
     const [url, options] = fetcher.mock.calls[0]!
     expect(url).toBe(`http://sidecar.internal:8000/connections/${reference.connectionId}/exports`)
     expect(new Headers(options?.headers).get('X-Connection-Key')).toBe(reference.connectionKey)
-    expect(JSON.parse(String(options?.body))).toEqual({ export_id: input.runId, lines: input.needs.lines })
+    expect(JSON.parse(String(options?.body))).toEqual({
+      export_id: input.runId,
+      lines: input.needs.lines,
+      products: [],
+    })
     expect(String(url)).not.toContain(reference.connectionKey)
   })
 
@@ -138,5 +142,78 @@ describe('AH-sidecarcontract', () => {
     expect(fetcher).not.toHaveBeenCalled()
     expect(await client.disconnect(reference)).toBe(true)
     expect(fetcher.mock.calls[0]?.[1]?.method).toBe('DELETE')
+  })
+
+  test('stuurt gekoppelde producten als productregels en de rest als tekst', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => json(job(input)))
+    const input = fixture()
+    input.needs.ahItems = [
+      { kind: 'product', productId: 123, description: 'AH Trostomaten', quantity: 2, check: false },
+      { kind: 'text', description: '1 bos · Peterselie' },
+    ]
+    await ahSidecar(config, fetcher).target.send(input)
+    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toEqual({
+      export_id: input.runId,
+      lines: ['1 bos · Peterselie'],
+      products: [{ product_id: 123, quantity: 2, description: 'AH Trostomaten' }],
+    })
+  })
+
+  test('zoekt producten afgeschermd, valideert het antwoord en toont geen ruwe fouten', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        json({
+          products: [
+            {
+              id: 1,
+              title: 'AH Trostomaten',
+              brand: 'AH',
+              price: 2.19,
+              is_bonus: false,
+              bonus_label: null,
+              unit_size: '500 g',
+              image_url: 'https://static.ah.nl/tomaat.jpg',
+            },
+            { id: 2, title: 'Los', image_url: 'http://static.ah.nl/x.jpg' },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(json({ detail: { code: 'search_failed', message: 'geheim' } }, 502))
+      .mockResolvedValueOnce(json({ products: [{ id: 'x' }] }))
+      .mockResolvedValueOnce(json({ detail: { code: 'connection_not_found' } }, 404))
+    const products = ahSidecar(config, fetcher).products
+    const connection = { destinationId: reference.connectionId, secret: reference.connectionKey }
+    expect(await products.search(connection, 'tomaat & ui', 5)).toEqual([
+      {
+        id: 1,
+        title: 'AH Trostomaten',
+        brand: 'AH',
+        price: 2.19,
+        isBonus: false,
+        bonusLabel: null,
+        unitSize: '500 g',
+        imageUrl: 'https://static.ah.nl/tomaat.jpg',
+      },
+      {
+        id: 2,
+        title: 'Los',
+        brand: null,
+        price: null,
+        isBonus: null,
+        bonusLabel: null,
+        unitSize: null,
+        imageUrl: null,
+      },
+    ])
+    const [url, options] = fetcher.mock.calls[0]!
+    expect(url).toBe(
+      `http://sidecar.internal:8000/connections/${reference.connectionId}/products?query=tomaat+%26+ui&limit=5`,
+    )
+    expect(new Headers(options?.headers).get('x-connection-key')).toBe(reference.connectionKey)
+    await expect(products.search(connection, 'x', 5)).rejects.toThrow(/niet gelukt/)
+    await expect(products.search(connection, 'x', 5)).rejects.toThrow(/geen geldige/)
+    await expect(products.search(connection, 'x', 5)).rejects.toThrow(/opnieuw koppelen/)
+    for (const call of fetcher.mock.calls) expect(String(call[0])).not.toContain('geheim')
   })
 })

@@ -285,7 +285,7 @@ describe('MCP-toegang', () => {
     const guide = JSON.parse(guideResult.content[0]!.text)
     const list = (await rpcResult(await rpc(token, { jsonrpc: '2.0', id: 2, method: 'tools/list' }))).result
     expect(Object.values(guide.workflows).flat().sort()).toEqual(list.tools!.map((item) => item.name).sort())
-    expect(list.tools).toHaveLength(44)
+    expect(list.tools).toHaveLength(47)
     const initialized = await rpcResult(
       await rpc(token, {
         jsonrpc: '2.0',
@@ -394,6 +394,73 @@ describe('MCP-toegang', () => {
     })
     expect(stale.isError).toBe(true)
     expect(stale.content[0]!.text).toMatch(/behoefte is gewijzigd/)
+  })
+
+  test('AH-producttools koppelen per huishouden en tonen de koppeling in ingrediënt en boodschappen', async () => {
+    const first = await signUpWithSession(auth, 'AH-agent A')
+    const second = await signUpWithSession(auth, 'AH-agent B')
+    await createHousehold(db, first.userId, 'AH-huis A')
+    await createHousehold(db, second.userId, 'AH-huis B')
+    const a = await authorize(first.headers.get('cookie')!, true)
+    const b = await authorize(second.headers.get('cookie')!, true)
+    async function invoke(token: string | null, name: string, args: Record<string, unknown> = {}) {
+      return (
+        await rpcResult(
+          await rpc(token, {
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'tools/call',
+            params: { name, arguments: args },
+          }),
+        )
+      ).result
+    }
+    const ingredient = JSON.parse(
+      (await invoke(a.token, 'create_ingredient', { name: 'AH-uien', baseUnit: 'g' })).content[0]!.text,
+    )
+    const search = await invoke(a.token, 'search_ah_products', { query: 'uien', ingredientId: ingredient.id })
+    expect(search.isError).toBe(true)
+    expect(search.content[0]!.text).toMatch(/niet ingeschakeld/)
+    const link = {
+      ingredientId: ingredient.id,
+      productId: 1525,
+      title: 'AH Uien',
+      unitSize: '1 kg',
+      imageUrl: 'https://static.ah.nl/uien.jpg',
+      packAmount: 1000,
+    }
+    expect((await invoke(b.token, 'link_ingredient_ah_product', link)).isError).toBe(true)
+    expect((await invoke(a.token, 'link_ingredient_ah_product', link)).isError).not.toBe(true)
+    const read = JSON.parse(
+      (await invoke(a.token, 'get_ingredient', { ingredientId: ingredient.id })).content[0]!.text,
+    )
+    expect(read.ahProduct).toMatchObject({ productId: 1525, packAmount: 1000 })
+    const recipe = JSON.parse(
+      (
+        await invoke(a.token, 'create_recipe', {
+          name: 'Uiensoep',
+          servings: 2,
+          ingredients: [{ ingredientId: ingredient.id, quantity: 1500, unit: 'g' }],
+        })
+      ).content[0]!.text,
+    )
+    const preview = JSON.parse(
+      (await invoke(a.token, 'prepare_shopping', { kind: 'recipe', recipeId: recipe.id, servings: 2 }))
+        .content[0]!.text,
+    )
+    expect(preview.proposal.items[0].ahProduct).toMatchObject({ productId: 1525, quantity: 2, check: false })
+    expect(preview.proposal.ahItems).toEqual([
+      { kind: 'product', productId: 1525, description: 'AH Uien', quantity: 2, check: false },
+    ])
+    expect(
+      (await invoke(b.token, 'unlink_ingredient_ah_product', { ingredientId: ingredient.id })).isError,
+    ).toBe(true)
+    const removed = await invoke(a.token, 'unlink_ingredient_ah_product', { ingredientId: ingredient.id })
+    expect(JSON.parse(removed.content[0]!.text)).toEqual({ removed: true })
+    expect(
+      JSON.parse((await invoke(a.token, 'get_ingredient', { ingredientId: ingredient.id })).content[0]!.text)
+        .ahProduct,
+    ).toBeNull()
   })
 
   test('gemaakttools bevestigen eenmaal, bewaren beoordelingen en schermen bronnen en events af', async () => {

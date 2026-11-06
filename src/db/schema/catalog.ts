@@ -3,6 +3,7 @@ import {
   check,
   doublePrecision,
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -62,6 +63,38 @@ export const ingredientConversion = pgTable(
     check(
       'ingredient_conversion_unit_check',
       sql`${t.unit} in ('g', 'ml', 'stuk', 'teen', 'blik', 'pak', 'bos', 'plak')`,
+    ),
+  ],
+)
+
+/** Per-household choice of an Albert Heijn product for an ingredient (global or own). */
+export const ingredientAhProduct = pgTable(
+  'ingredient_ah_product',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    householdId: text('household_id')
+      .notNull()
+      .references(() => household.id, { onDelete: 'cascade' }),
+    ingredientId: text('ingredient_id')
+      .notNull()
+      .references(() => ingredient.id, { onDelete: 'restrict' }),
+    productId: integer('product_id').notNull(),
+    title: text('title').notNull(),
+    unitSize: text('unit_size'),
+    imageUrl: text('image_url'),
+    /** Pack contents in the ingredient's base unit; null when unknown. */
+    packAmount: doublePrecision('pack_amount'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('ingredient_ah_product_household_ingredient_uq').on(t.householdId, t.ingredientId),
+    check('ingredient_ah_product_product_id_check', sql`${t.productId} > 0`),
+    check(
+      'ingredient_ah_product_pack_amount_check',
+      sql`${t.packAmount} is null or (${t.packAmount} > 0 and ${t.packAmount} <= 1000000000)`,
     ),
   ],
 )

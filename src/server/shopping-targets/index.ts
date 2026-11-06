@@ -12,12 +12,14 @@ export function shoppingDeps(): ShoppingDeps {
 }
 
 export function createShoppingDeps(secret: string, ah?: AhSidecarConfig): ShoppingDeps {
+  const sidecar = ah?.url && ah.secret ? ahSidecar(ah) : null
   return {
     secret,
     targets: {
       share: { send: async () => ({ status: 'pending' }) },
       notion: notionTarget(),
-      ...(ah?.url && ah.secret ? { ah: ahSidecar(ah).target } : {}),
+      ...(sidecar ? { ah: sidecar.target } : {}),
     },
+    ...(sidecar ? { ahProducts: sidecar.products } : {}),
   }
 }

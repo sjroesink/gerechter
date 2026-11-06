@@ -8,6 +8,7 @@ from typing import Any
 
 import httpx
 from appie import AHClient
+from appie.models import ShoppingListItem
 
 from .store import Store
 
@@ -16,6 +17,14 @@ type ClientFactory = Callable[[str], AbstractAsyncContextManager[AHClient]]
 
 def normalized(value: str) -> str:
     return " ".join(unicodedata.normalize("NFKC", value).casefold().split())
+
+
+def product_amounts(items: list[ShoppingListItem]) -> dict[int, int]:
+    amounts: dict[int, int] = {}
+    for item in items:
+        if item.product_id is not None and item.quantity > 0:
+            amounts[item.product_id] = amounts.get(item.product_id, 0) + item.quantity
+    return amounts
 
 
 def http_status(error: Exception) -> int | None:
@@ -83,11 +92,9 @@ class Jobs:
             phase = "lijst lezen"
             try:
                 async with self.client_factory(connection_id) as client:
-                    current = {
-                        normalized(item.description)
-                        for item in await client.lists.get_list()
-                        if item.quantity > 0
-                    }
+                    items = await client.lists.get_list()
+                    current = {normalized(item.description) for item in items if item.quantity > 0}
+                    amounts = product_amounts(items)
                     for line in job["lines"]:
                         if not self.store.is_active(connection_id):
                             self.store.set_job(
@@ -98,7 +105,22 @@ class Jobs:
                             )
                             return
                         description = line["description"]
-                        if normalized(description) in current:
+                        product_id = line["product_id"]
+                        if product_id is not None:
+                            # The list PATCH sets an absolute quantity: add to what is present.
+                            target = amounts.get(product_id, 0) + line["quantity"]
+                            self.store.set_line(
+                                connection_id, export_id, line["position"], "inflight", target
+                            )
+                            inflight = True
+                            phase = "regel toevoegen"
+                            await client.lists.add_item(
+                                description, quantity=target, product_id=product_id
+                            )
+                            self.store.set_line(connection_id, export_id, line["position"], "sent")
+                            inflight = False
+                            amounts[product_id] = target
+                        elif normalized(description) in current:
                             self.store.set_line(
                                 connection_id, export_id, line["position"], "present"
                             )
@@ -160,16 +182,21 @@ class Jobs:
                 return False
             try:
                 async with self.client_factory(connection_id) as client:
-                    present = {
-                        normalized(item.description)
-                        for item in await client.lists.get_list()
-                        if item.quantity > 0
-                    }
+                    items = await client.lists.get_list()
+                present = {normalized(item.description) for item in items if item.quantity > 0}
+                amounts = product_amounts(items)
                 missing = False
                 for line in job["lines"]:
                     if line["status"] in {"sent", "present"}:
                         continue
-                    if normalized(line["description"]) in present:
+                    if line["product_id"] is not None:
+                        target = line["target_quantity"]
+                        confirmed = (
+                            target is not None and amounts.get(line["product_id"], 0) >= target
+                        )
+                    else:
+                        confirmed = normalized(line["description"]) in present
+                    if confirmed:
                         self.store.set_line(connection_id, export_id, line["position"], "present")
                     else:
                         missing = True

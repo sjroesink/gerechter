@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
+import { getAhProductLink } from '~/domain/ah-products'
 import type { Ctx } from '~/domain/core'
 import {
   createIngredient,
@@ -47,11 +48,15 @@ export function registerCatalogTools(server: McpServer, getCtx: () => Promise<Ct
     {
       title: 'Ingrediënt bekijken',
       description:
-        'Lees een zichtbaar ingrediënt met basiseenheid, aliassen, herkomst, optionele foto met bronvermelding en omrekeningen.',
+        'Lees een zichtbaar ingrediënt met basiseenheid, aliassen, herkomst, optionele foto met bronvermelding, omrekeningen en de AH-productkoppeling van het actieve huishouden (ahProduct, of null).',
       inputSchema: z.object({ ingredientId: id }),
       annotations: { readOnlyHint: true },
     },
-    ({ ingredientId }) => tool(getCtx, (ctx) => getIngredient(ctx, ingredientId)),
+    ({ ingredientId }) =>
+      tool(getCtx, async (ctx) => ({
+        ...(await getIngredient(ctx, ingredientId)),
+        ahProduct: await getAhProductLink(ctx, ingredientId),
+      })),
   )
   server.registerTool(
     'create_ingredient',

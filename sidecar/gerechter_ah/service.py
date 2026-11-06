@@ -8,20 +8,30 @@ from collections.abc import Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID, uuid4
 
 import httpx
 from appie import AHClient
-from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException
+from appie.models import Product
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    StringConstraints,
+    model_validator,
+)
 
 from .auth import make_client
-from .jobs import Jobs
-from .store import Store
+from .jobs import Jobs, safe_error
+from .store import LineInput, Store
+
+MAX_PACKAGES = 99
 
 
 @dataclass(frozen=True)
@@ -43,13 +53,68 @@ class ConnectionInput(BaseModel):
     code: Annotated[SecretStr, Field(min_length=1, max_length=4096)]
 
 
+class ProductLine(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    product_id: Annotated[int, Field(strict=True, gt=0, le=2_147_483_647)]
+    quantity: Annotated[int, Field(strict=True, ge=1, le=MAX_PACKAGES)]
+    description: Annotated[str, Field(min_length=1, max_length=2000)]
+
+
 class ExportInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     export_id: UUID
     lines: Annotated[
         list[Annotated[str, Field(min_length=1, max_length=2000)]],
-        Field(min_length=1, max_length=500),
+        Field(max_length=500),
+    ] = []
+    products: Annotated[list[ProductLine], Field(max_length=500)] = []
+
+    @model_validator(mode="after")
+    def has_lines(self) -> ExportInput:
+        if not self.lines and not self.products:
+            raise ValueError("At least one line or product is required")
+        return self
+
+
+def export_lines(body: ExportInput) -> list[LineInput]:
+    """Group identical text lines as before and merge product lines per product ID."""
+    counts = Counter(body.lines)
+    lines: list[LineInput] = [
+        {
+            "description": f"{count}× {line}" if count > 1 else line,
+            "product_id": None,
+            "quantity": 1,
+        }
+        for line, count in counts.items()
     ]
+    products: dict[int, LineInput] = {}
+    for product in body.products:
+        merged = products.get(product.product_id)
+        if merged is None:
+            products[product.product_id] = {
+                "description": product.description,
+                "product_id": product.product_id,
+                "quantity": product.quantity,
+            }
+        else:
+            merged["quantity"] = min(merged["quantity"] + product.quantity, MAX_PACKAGES)
+    return [*lines, *products.values()]
+
+
+def public_product(product: Product) -> dict[str, Any]:
+    image_url = product.image_url
+    return {
+        "id": product.id,
+        "title": product.title,
+        "brand": product.brand,
+        "price": product.price,
+        "is_bonus": product.is_bonus,
+        "bonus_label": product.bonus_label,
+        "unit_size": product.unit_size,
+        "image_url": image_url
+        if isinstance(image_url, str) and image_url.startswith("https://")
+        else None,
+    }
 
 
 def extract_code(value: str) -> str:
@@ -148,9 +213,8 @@ def create_app(
         cid, eid = str(connection_id), str(body.export_id)
         connection_auth(cid, key)
         try:
-            counts = Counter(body.lines)
-            lines = [f"{count}× {line}" if count > 1 else line for line, count in counts.items()]
-            if any(len(line) > 2000 for line in lines):
+            lines = export_lines(body)
+            if any(len(line["description"]) > 2000 for line in lines):
                 raise HTTPException(422, "Een gegroepeerde boodschappenregel is te lang.")
             fresh = store.reserve(cid, eid, lines)
         except ValueError:
@@ -162,6 +226,31 @@ def create_app(
             tasks.add(task)
             task.add_done_callback(tasks.discard)
         return jobs.public(cid, eid)
+
+    @router.get("/connections/{connection_id}/products")
+    async def search_products(
+        connection_id: UUID,
+        query: Annotated[
+            str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100), Query()
+        ],
+        limit: Annotated[int, Query(ge=1, le=30)] = 20,
+        key: Annotated[str | None, Header(alias="X-Connection-Key")] = None,
+    ):
+        cid = str(connection_id)
+        connection_auth(cid, key)
+        # Same lock as exports, so a token refresh never runs concurrently for one connection.
+        async with jobs.lock(cid):
+            if not store.is_active(cid):
+                raise HTTPException(404, {"code": "connection_not_found"})
+            try:
+                async with jobs.client_factory(cid) as client:
+                    products = await client.products.search(query, limit)
+            except Exception as error:
+                raise HTTPException(
+                    502,
+                    {"code": "search_failed", "message": safe_error(error, "producten zoeken")},
+                ) from None
+        return {"products": [public_product(product) for product in products[:limit]]}
 
     @router.get("/connections/{connection_id}/exports/{export_id}")
     async def status(

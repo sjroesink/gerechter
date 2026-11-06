@@ -231,8 +231,9 @@ zijn getest zonder live Notion-writes. Een live accountcontrole vereist een inge
 ## Albert Heijn (experimenteel)
 
 De optionele Python-sidecar gebruikt [python-appie 0.2.2](https://pypi.org/project/python-appie/0.2.2/).
-Dit is een onofficiële API: de koppeling kan uitvallen als AH iets wijzigt. Gerechter voegt uitsluitend
-tekstregels aan je boodschappenlijst toe. Productkeuze, winkelmandje en bestellen doe je zelf in AH.
+Dit is een onofficiële API: de koppeling kan uitvallen als AH iets wijzigt. Gerechter schrijft uitsluitend
+naar je AH-boodschappenlijst: gekoppelde ingrediënten als echt product, de rest als tekstregel. Winkelmandje
+en bestellen doe je zelf in AH.
 
 Zet in `.env` een willekeurig `AH_SIDECAR_SECRET` van minstens 32 tekens (bijvoorbeeld met
 `openssl rand -base64 32`) en `AH_SIDECAR_URL=http://127.0.0.1:3001`. Start voor lokale ontwikkeling:
@@ -261,9 +262,24 @@ moet je opnieuw koppelen. Op Linux moet de datamap schrijfbaar zijn voor de inge
 (standaard `1000:1000`); op Unraid kun je bijvoorbeeld je eigen appdata-gebruiker instellen. Draai één
 sidecarworker per datamap; de meegeleverde Docker-runtime doet dat al.
 
+### AH-producten koppelen
+
+Ieder lid kan per huishouden een ingrediënt aan één AH-product koppelen: op de ingrediëntpagina (sectie
+‘AH-product’), in het boodschappenoverzicht met doel Albert Heijn (‘Koppel product’) of via de MCP-tools
+`search_ah_products`, `link_ingredient_ah_product` en `unlink_ingredient_ah_product`. Zoeken gebruikt de
+AH-verbinding van het huishouden en wijzigt niets aan je lijst. Bij het koppelen leg je de inhoud per
+verpakking vast in de basiseenheid van het ingrediënt; Gerechter stelt die voor uit de AH-omschrijving
+(‘1 kg’ → 1000 g) maar raadt niet bij een andere dimensie of ‘per kg’. Het aantal verpakkingen is de
+benodigde hoeveelheid gedeeld door die inhoud, naar boven afgerond (maximaal 99). Zonder inhoud of bij alleen
+vage hoeveelheden wordt het 1 stuk met de melding ‘aantal controleren’. Ingrediënten met hetzelfde product
+worden samengevoegd; staat het product al op je lijst, dan wordt het aantal daarbij opgeteld. Een gewijzigde
+koppeling maakt een open boodschappenvoorstel ongeldig. Titel, foto en inhoud worden bij het koppelen
+vastgelegd en niet automatisch bijgewerkt.
+
 De exporthistorie toont de voortgang per lijst. Dezelfde verzoeksleutel gebruikt dezelfde duurzame job.
-Exact aanwezige tekstregels worden overgeslagen; er worden geen hoeveelheden op een bestaande AH-regel
-geraden of overschreven. Bij een deelresultaat, netwerkfout of herstart wordt niets automatisch opnieuw
+Exact aanwezige tekstregels worden overgeslagen; er worden geen hoeveelheden op een bestaande AH-tekstregel
+geraden of overschreven. Voor een productregel wordt het beoogde eindaantal vóór het schrijven bewaard en
+bevestigt een controle de regel pas als het product minstens met dat aantal op de lijst staat. Bij een deelresultaat, netwerkfout of herstart wordt niets automatisch opnieuw
 geschreven. ‘Extern resultaat controleren’ leest de AH-lijst om onzekere regels te herkennen. Controleer
 de lijst voordat je bewust een nieuwe export maakt. De app blijft eerdere bronclaims bewaken.
 Bij fouten toont de historie de mislukte fase en waar beschikbaar de HTTP-status, zonder ruwe

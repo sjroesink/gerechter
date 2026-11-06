@@ -8,9 +8,23 @@ import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+
+class LineInput(TypedDict):
+    description: str
+    product_id: int | None
+    quantity: int
+
+
+# Columns added after the first release; existing databases receive them at startup.
+JOB_LINE_COLUMNS = {
+    "product_id": "INTEGER NULL",
+    "quantity": "INTEGER NOT NULL DEFAULT 1",
+    "target_quantity": "INTEGER NULL",
+}
 
 
 class Store:
@@ -39,11 +53,18 @@ class Store:
                     position INTEGER NOT NULL, description TEXT NOT NULL,
                     status TEXT NOT NULL CHECK(status IN
                         ('pending','inflight','sent','present','uncertain')),
+                    product_id INTEGER NULL,
+                    quantity INTEGER NOT NULL DEFAULT 1,
+                    target_quantity INTEGER NULL,
                     PRIMARY KEY(connection_id, export_id, position),
                     FOREIGN KEY(connection_id,export_id)
                         REFERENCES jobs(connection_id,export_id)
                 );
             """)
+            existing = {row["name"] for row in db.execute("PRAGMA table_info(job_lines)")}
+            for column, definition in JOB_LINE_COLUMNS.items():
+                if column not in existing:
+                    db.execute(f"ALTER TABLE job_lines ADD COLUMN {column} {definition}")
         if os.name != "nt":
             path.chmod(0o600)
 
@@ -128,8 +149,15 @@ class Store:
             )
             db.execute("UPDATE job_lines SET status='uncertain' WHERE status='inflight'")
 
-    def reserve(self, connection_id: str, export_id: str, lines: list[str]) -> bool:
-        digest = hashlib.sha256(json.dumps(lines, ensure_ascii=False).encode()).hexdigest()
+    def reserve(self, connection_id: str, export_id: str, lines: list[LineInput]) -> bool:
+        if any(line["product_id"] is not None for line in lines):
+            hashed: list[Any] = [
+                [line["description"], line["product_id"], line["quantity"]] for line in lines
+            ]
+        else:
+            # Text-only exports keep the original hash, so retries across an upgrade still match.
+            hashed = [line["description"] for line in lines]
+        digest = hashlib.sha256(json.dumps(hashed, ensure_ascii=False).encode()).hexdigest()
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
@@ -144,8 +172,19 @@ class Store:
                 "INSERT INTO jobs VALUES(?,?,?,'pending',NULL)", (connection_id, export_id, digest)
             )
             db.executemany(
-                "INSERT INTO job_lines VALUES(?,?,?,?,'pending')",
-                [(connection_id, export_id, index, line) for index, line in enumerate(lines)],
+                "INSERT INTO job_lines(connection_id,export_id,position,description,status,"
+                "product_id,quantity) VALUES(?,?,?,?,'pending',?,?)",
+                [
+                    (
+                        connection_id,
+                        export_id,
+                        index,
+                        line["description"],
+                        line["product_id"],
+                        line["quantity"],
+                    )
+                    for index, line in enumerate(lines)
+                ],
             )
             return True
 
@@ -158,7 +197,8 @@ class Store:
             if not row:
                 return None
             lines = db.execute(
-                "SELECT position,description,status FROM job_lines "
+                "SELECT position,description,status,product_id,quantity,target_quantity "
+                "FROM job_lines "
                 "WHERE connection_id=? AND export_id=? ORDER BY position",
                 (connection_id, export_id),
             ).fetchall()
@@ -171,10 +211,18 @@ class Store:
                 (status, message, connection_id, export_id),
             )
 
-    def set_line(self, connection_id: str, export_id: str, position: int, status: str) -> None:
+    def set_line(
+        self,
+        connection_id: str,
+        export_id: str,
+        position: int,
+        status: str,
+        target_quantity: int | None = None,
+    ) -> None:
+        """Status and an optional absolute target are stored in one statement."""
         with self.db() as db:
             db.execute(
-                "UPDATE job_lines SET status=? "
+                "UPDATE job_lines SET status=?,target_quantity=COALESCE(?,target_quantity) "
                 "WHERE connection_id=? AND export_id=? AND position=?",
-                (status, connection_id, export_id, position),
+                (status, target_quantity, connection_id, export_id, position),
             )

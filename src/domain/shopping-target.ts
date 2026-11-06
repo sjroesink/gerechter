@@ -18,4 +18,25 @@ export interface ShoppingTarget {
   send(request: ShoppingProviderRequest): Promise<ShoppingProviderResult>
   check?(request: ShoppingProviderRequest): Promise<ShoppingProviderResult>
 }
-export type ShoppingDeps = { secret: string; targets: Partial<Record<ShoppingTargetId, ShoppingTarget>> }
+export type AhProductResult = {
+  id: number
+  title: string
+  brand: string | null
+  price: number | null
+  isBonus: boolean | null
+  bonusLabel: string | null
+  unitSize: string | null
+  imageUrl: string | null
+}
+export interface AhProductSearch {
+  search(
+    connection: { destinationId: string; secret: string },
+    query: string,
+    limit: number,
+  ): Promise<AhProductResult[]>
+}
+export type ShoppingDeps = {
+  secret: string
+  targets: Partial<Record<ShoppingTargetId, ShoppingTarget>>
+  ahProducts?: AhProductSearch
+}

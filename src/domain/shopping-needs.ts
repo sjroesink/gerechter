@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { and, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { madeEvent } from '~/db/schema'
+import { ahQuantity, getAhProductLinks, MAX_AH_QUANTITY } from './ah-products'
 import { calendarDateInput, weekDates } from './calendar'
 import type { Ctx } from './core'
 import { parseInput } from './core/validation'
@@ -9,7 +10,13 @@ import { getPantryItem } from './pantry'
 import { getPlanRange } from './planning'
 import { getHouseholdPreferences } from './preferences'
 import { getRecipe } from './recipes'
-import type { ShoppingLine, ShoppingNeeds, ShoppingSource } from './shopping-types'
+import type {
+  AhExportItem,
+  AhLineProduct,
+  ShoppingLine,
+  ShoppingNeeds,
+  ShoppingSource,
+} from './shopping-types'
 import type { IngredientPhoto } from './ingredient-photo'
 import { measurementUnit } from './units'
 
@@ -115,13 +122,35 @@ export async function calculateShoppingNeeds(
     else if (result.needed > 0 || result.unknown.length > 0) items.push(result)
     else covered.push(result)
   }
-  const lines = items.flatMap((item) => [
+  const textLines = (item: ShoppingLine) => [
     ...(item.needed > 0 ? [`${number.format(item.needed)} ${item.baseUnit} · ${item.name}`] : []),
     ...item.unknown.map(
       (line) =>
         `${item.name} · ${line.quantity === null ? 'naar smaak' : `${number.format(line.quantity)} ${line.unit}`} (${line.reason}; controleer zelf)${line.note ? ` · ${line.note}` : ''}`,
     ),
-  ])
+  ]
+  const lines = items.flatMap(textLines)
+  const links = await getAhProductLinks(
+    ctx,
+    items.map((item) => item.ingredientId),
+  )
+  const ahProducts = new Map<string, AhLineProduct>()
+  const ahItems: AhExportItem[] = []
+  for (const item of items) {
+    const link = links.get(item.ingredientId)
+    if (!link) {
+      ahItems.push(...textLines(item).map((description) => ({ kind: 'text' as const, description })))
+      continue
+    }
+    const { quantity, check } = ahQuantity(item, link.packAmount)
+    ahProducts.set(item.ingredientId, { ...link, quantity, check })
+    const same = ahItems.find((entry) => entry.kind === 'product' && entry.productId === link.productId)
+    if (same?.kind === 'product') {
+      same.quantity = Math.min(MAX_AH_QUANTITY, same.quantity + quantity)
+      same.check ||= check
+    } else
+      ahItems.push({ kind: 'product', productId: link.productId, description: link.title, quantity, check })
+  }
   const sources = recipes
     .map(({ key, mealVersion, item }) => ({
       key,
@@ -142,8 +171,13 @@ export async function calculateShoppingNeeds(
     covered,
     ignored,
     lines,
+    ahItems,
   }
-  const fingerprint = createHash('sha256').update(JSON.stringify(content)).digest('hex')
+  // Pack contents change what a later export would send, so they invalidate an open proposal too.
+  const linkKey = [...ahProducts].map(([id, product]) => [id, product.productId, product.packAmount])
+  const fingerprint = createHash('sha256')
+    .update(JSON.stringify(linkKey.length ? { ...content, linkKey } : content))
+    .digest('hex')
   const text = [
     `Boodschappen · ${title}`,
     '',
@@ -163,7 +197,10 @@ export async function calculateShoppingNeeds(
     rows.map((line) => ({ ...line, photo: photos.get(line.ingredientId) ?? null }))
   return {
     ...content,
-    items: withPhotos(items),
+    items: withPhotos(items).map((line) => ({
+      ...line,
+      ahProduct: ahProducts.get(line.ingredientId) ?? null,
+    })),
     staples: withPhotos(staples),
     covered: withPhotos(covered),
     text,
