@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#c23b22"/>
+  <!-- The existing PotIcon, centered inside the maskable 80% safe circle. -->
+  <g fill="none" stroke="#ffffff" stroke-width="19" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M137 242h238M164 242v79a53 53 0 0 0 53 53h79a53 53 0 0 0 53-53v-79"/>
+    <path d="M217 189c0-20 13-27 13-46M283 189c0-20 13-27 13-46"/>
+  </g>
+</svg>

@@ -22,6 +22,12 @@ niemand zich meer registreren zonder uitnodigingslink.
 
 Links worden niet gemaild; je kopieert of deelt ze zelf. Ze zijn eenmalig te gebruiken.
 
+## Installeerbare app
+
+Gerechter is via HTTPS als app te installeren op telefoon en desktop. De app heeft internet nodig;
+offline verschijnt alleen een openbare melding, geen bewaarde privégegevens. Zie [PWA en privacy](docs/pwa.md)
+voor installatie, updates, hostingheaders en browsertests.
+
 ## Ingrediënten en eenheden
 
 Onder Meer › Ingrediënten zoek je op naam of andere namen, voeg je eigen ingrediënten toe en beheer je

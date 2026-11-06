@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "Gerechter",
+  "short_name": "Gerechter",
+  "description": "Je gerechten, voorraad en weekplanning bij elkaar. Internetverbinding vereist.",
+  "lang": "nl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3f5f1",
+  "theme_color": "#c23b22",
+  "icons": [
+    { "src": "/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/pwa/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
