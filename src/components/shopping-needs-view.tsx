@@ -131,7 +131,17 @@ function AhLine({ item, pick }: { item: ShoppingLine; pick: () => void }) {
         </p>
         {product.unitSize && <p className="text-[13px] text-ink-3">{product.unitSize}</p>}
       </div>
-      {product.check && <Badge tone="amber">aantal controleren</Badge>}
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        {product.check && <Badge tone="amber">aantal controleren</Badge>}
+        <Button
+          variant="ghost"
+          className="min-h-11 px-3"
+          aria-label={`Wissel AH-product voor ${item.name}`}
+          onClick={pick}
+        >
+          Wissel
+        </Button>
+      </div>
     </div>
   )
 }

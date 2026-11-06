@@ -22,6 +22,11 @@
 
 - [x] 4.1 Werk README (AH-sectie) bij; draai Pythonchecks, lint, typecheck, alle TypeScript- en browsertests; bouw en start de sidecar lokaal en rapporteer of een live AH-zoekopdracht/export met een echte verbinding is gecontroleerd.
 
+## 5. Wisselen vanuit lijst en boodschappen
+
+- [x] 5.1 Voeg in het boodschappenoverzicht een wisselactie toe bij gekoppelde ingrediënten en toon in de ingrediëntenlijst per ingrediënt het product met koppel-/wisselactie (eigen loader met koppelingen in één query, alleen bij ingestelde sidecar en verbinding); integratietest voor de batch-read met huishoudafscherming en browsertest op 360 px voor wisselen in lijst en boodschappenoverzicht.
+- [x] 5.2 Draai lint, typecheck, TypeScript- en browsertests; zet de wijziging op main en controleer de deploy.
+
 ## Workflow follow-up
 
 - Stem bij archiveren de tekstexport-eis van `ah-sidecar` af op `ah-product-links`.

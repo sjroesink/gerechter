@@ -14,7 +14,8 @@ import {
   updateIngredientInput,
 } from '~/domain/catalog'
 import { UNIT_IDS } from '~/domain/units'
-import { getAhProductLink } from '~/domain/ah-products'
+import { getAhProductLink, getAhProductLinks } from '~/domain/ah-products'
+import type { Ctx } from '~/domain/core'
 import { getShoppingTargets } from '~/domain/shopping-sync'
 import { sessionCtx, toResult } from './fn'
 import { env } from './runtime'
@@ -23,25 +24,40 @@ const id = z.string().min(1).max(100)
 export const getCatalog = createServerFn({ method: 'GET' })
   .validator(searchIngredientsInput)
   .handler(({ data }) => toResult(async () => searchIngredients(await sessionCtx(), data)))
+/** AH status for this installation and household; null when the sidecar is not configured. */
+async function ahStatus(ctx: Ctx) {
+  const config = env()
+  if (!config.AH_SIDECAR_URL || !config.AH_SIDECAR_SECRET) return null
+  return {
+    connected: (await getShoppingTargets(ctx)).targets.some(
+      (target) => target.target === 'ah' && target.configured,
+    ),
+  }
+}
+export const getCatalogPage = createServerFn({ method: 'GET' })
+  .validator(searchIngredientsInput)
+  .handler(({ data }) =>
+    toResult(async () => {
+      const ctx = await sessionCtx()
+      const items = await searchIngredients(ctx, data)
+      const ah = await ahStatus(ctx)
+      const links = ah
+        ? await getAhProductLinks(
+            ctx,
+            items.map((item) => item.id),
+          )
+        : new Map()
+      return { ah, items: items.map((item) => ({ ...item, ahProduct: links.get(item.id) ?? null })) }
+    }),
+  )
 export const getIngredientPage = createServerFn({ method: 'GET' })
   .validator(z.object({ ingredientId: id }))
   .handler(({ data }) =>
     toResult(async () => {
       const ctx = await sessionCtx()
       const ingredient = await getIngredient(ctx, data.ingredientId)
-      const config = env()
-      const enabled = Boolean(config.AH_SIDECAR_URL && config.AH_SIDECAR_SECRET)
-      return {
-        ...ingredient,
-        ah: enabled
-          ? {
-              connected: (await getShoppingTargets(ctx)).targets.some(
-                (target) => target.target === 'ah' && target.configured,
-              ),
-              link: await getAhProductLink(ctx, ingredient.id),
-            }
-          : null,
-      }
+      const ah = await ahStatus(ctx)
+      return { ...ingredient, ah: ah && { ...ah, link: await getAhProductLink(ctx, ingredient.id) } }
     }),
   )
 export const createIngredientFn = createServerFn({ method: 'POST' })

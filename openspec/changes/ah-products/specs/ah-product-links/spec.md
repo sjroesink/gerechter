@@ -92,3 +92,14 @@ MCP SHALL tools bieden om AH-producten te zoeken en een ingrediënt te koppelen 
 #### Scenario: Agent koppelt ingrediënten
 - **WHEN** een MCP-client producten zoekt en een ingrediënt koppelt
 - **THEN** toont een daaropvolgende ingrediënt- of boodschappenread via MCP dezelfde koppeling als de app
+
+### Requirement: Product wisselen vanuit lijst en boodschappen
+Bij ingestelde AH-sidecar en een AH-verbinding SHALL de ingrediëntenlijst per ingrediënt het gekoppelde product tonen met een actie om een product te koppelen of te wisselen, en SHALL het boodschappenoverzicht bij een gekoppeld ingrediënt een actie tonen om het product te wisselen. Wisselen MUST dezelfde zoek- en koppelregels gebruiken als eerste keer koppelen.
+
+#### Scenario: Wisselen in de ingrediëntenlijst
+- **WHEN** een lid in de ingrediëntenlijst bij een gekoppeld ingrediënt voor een ander product kiest
+- **THEN** toont de lijst daarna het nieuwe product en gebruikt een volgend boodschappenvoorstel dat product
+
+#### Scenario: Wisselen tijdens exporteren
+- **WHEN** een lid in het boodschappenoverzicht bij een gekoppeld ingrediënt een ander product kiest
+- **THEN** toont een vernieuwd voorstel het nieuwe product met opnieuw berekend aantal

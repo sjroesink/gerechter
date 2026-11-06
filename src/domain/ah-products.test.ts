@@ -1,7 +1,14 @@
 import { describe, expect, test } from 'vitest'
 import { setupTestDb } from '../../tests/db'
 import { twoHouseholds } from '../../tests/fixtures'
-import { ahQuantity, getAhProductLink, linkAhProduct, parseUnitSize, unlinkAhProduct } from './ah-products'
+import {
+  ahQuantity,
+  getAhProductLink,
+  getAhProductLinks,
+  linkAhProduct,
+  parseUnitSize,
+  unlinkAhProduct,
+} from './ah-products'
 import { createIngredient, setIngredientArchived } from './catalog'
 import { Invalid, NotFound } from './core'
 import { setPantryItem } from './pantry'
@@ -69,6 +76,28 @@ describe('AH-productkoppelingen', () => {
     expect((await getAhProductLink(b, global.id))?.productId).toBe(2)
     expect(await unlinkAhProduct(b, global.id)).toEqual({ removed: true })
     expect((await getAhProductLink(a, global.id))?.productId).toBe(1)
+  })
+
+  test('de batch-read voor de ingrediëntenlijst geeft alleen koppelingen van het eigen huishouden', async () => {
+    const { a, b } = await twoHouseholds(db)
+    a.user.role = 'admin'
+    const global = await createIngredient(a, {
+      name: `Globale prei ${crypto.randomUUID()}`,
+      baseUnit: 'stuk',
+      scope: 'global',
+    })
+    a.user.role = 'user'
+    const own = await createIngredient(a, { name: 'Eigen prei', baseUnit: 'stuk' })
+    const unlinked = await createIngredient(a, { name: 'Ongekoppelde prei', baseUnit: 'stuk' })
+    await linkAhProduct(a, { ingredientId: global.id, ...product(1) })
+    await linkAhProduct(a, { ingredientId: own.id, ...product(2) })
+    await linkAhProduct(b, { ingredientId: global.id, ...product(3) })
+    const forA = await getAhProductLinks(a, [global.id, own.id, unlinked.id])
+    expect([...forA.values()].map((link) => link.productId).sort()).toEqual([1, 2])
+    expect(forA.has(unlinked.id)).toBe(false)
+    const forB = await getAhProductLinks(b, [global.id, own.id])
+    expect([...forB.entries()].map(([id, link]) => [id, link.productId])).toEqual([[global.id, 3]])
+    expect((await getAhProductLinks(a, [])).size).toBe(0)
   })
 
   test('weigert vreemde ingrediënten en ongeldige invoer, en werkt een bestaande koppeling bij', async () => {
