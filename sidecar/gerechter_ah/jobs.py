@@ -106,9 +106,16 @@ class Jobs:
                             return
                         description = line["description"]
                         product_id = line["product_id"]
-                        if product_id is not None:
-                            # The list PATCH sets an absolute quantity: add to what is present.
-                            target = amounts.get(product_id, 0) + line["quantity"]
+                        if (
+                            product_id is not None
+                            and amounts.get(product_id, 0) >= line["quantity"]
+                        ):
+                            self.store.set_line(
+                                connection_id, export_id, line["position"], "present"
+                            )
+                        elif product_id is not None:
+                            # The list PATCH sets an absolute quantity: raise it to what is needed.
+                            target = line["quantity"]
                             self.store.set_line(
                                 connection_id, export_id, line["position"], "inflight", target
                             )

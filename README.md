@@ -272,7 +272,8 @@ verpakking vast in de basiseenheid van het ingrediënt; Gerechter stelt die voor
 (‘1 kg’ → 1000 g) maar raadt niet bij een andere dimensie of ‘per kg’. Het aantal verpakkingen is de
 benodigde hoeveelheid gedeeld door die inhoud, naar boven afgerond (maximaal 99). Zonder inhoud of bij alleen
 vage hoeveelheden wordt het 1 stuk met de melding ‘aantal controleren’. Ingrediënten met hetzelfde product
-worden samengevoegd; staat het product al op je lijst, dan wordt het aantal daarbij opgeteld. Een gewijzigde
+worden samengevoegd. De export kijkt eerst wat al op je lijst staat: staat het product er al in minstens dat
+aantal op, dan wordt het overgeslagen; staat er te weinig, dan wordt het aantal opgehoogd. Een gewijzigde
 koppeling maakt een open boodschappenvoorstel ongeldig. Titel, foto en inhoud worden bij het koppelen
 vastgelegd en niet automatisch bijgewerkt.
 
@@ -280,8 +281,10 @@ De exporthistorie toont de voortgang per lijst. Dezelfde verzoeksleutel gebruikt
 Exact aanwezige tekstregels worden overgeslagen; er worden geen hoeveelheden op een bestaande AH-tekstregel
 geraden of overschreven. Voor een productregel wordt het beoogde eindaantal vóór het schrijven bewaard en
 bevestigt een controle de regel pas als het product minstens met dat aantal op de lijst staat. Bij een deelresultaat, netwerkfout of herstart wordt niets automatisch opnieuw
-geschreven. ‘Extern resultaat controleren’ leest de AH-lijst om onzekere regels te herkennen. Controleer
-de lijst voordat je bewust een nieuwe export maakt. De app blijft eerdere bronclaims bewaken.
+geschreven. ‘Extern resultaat controleren’ leest de AH-lijst om onzekere regels te herkennen. Omdat een
+AH-export alleen aanvult wat nog ontbreekt, kun je een gerecht, dag of week gewoon opnieuw naar AH sturen,
+ook na een onzeker resultaat; alleen tijdens een lopende AH-export wordt een nieuwe geweigerd. Voor Delen en
+Notion blijft een bewuste herhaalkeuze nodig.
 Bij fouten toont de historie de mislukte fase en waar beschikbaar de HTTP-status, zonder ruwe
 AH-antwoorden of aanmeldgegevens. De tekstregeladapter corrigeert het payload van python-appie 0.2.2
 naar het formaat van de oorspronkelijke appie-go-client (PRD en strikeThrough=false).

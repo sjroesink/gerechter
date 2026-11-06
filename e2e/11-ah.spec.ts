@@ -64,7 +64,10 @@ test('AH-product koppelen vanuit boodschappen en ingrediëntpagina; export stuur
   await page.getByRole('button', { name: 'Product koppelen', exact: true }).click()
   await expect(toBuy).toContainText('1× AH Trostomaten')
   await expect(toBuy).not.toContainText('aantal controleren')
-  await page.getByLabel('Bewust opnieuw exporteren naar dit doel').check()
+  await expect(
+    page.getByText('Wat al op je AH-lijst staat wordt overgeslagen', { exact: false }),
+  ).toBeVisible()
+  await expect(page.getByLabel('Bewust opnieuw exporteren naar dit doel')).toHaveCount(0)
   await page.getByRole('button', { name: 'Zet op lijst · Albert Heijn', exact: true }).click()
   await expect(page).toHaveURL(/\/meer\/boodschappen\/historie\/[^/?]+$/)
   await expect(page.getByText('Verzonden', { exact: true })).toBeVisible({ timeout: 20_000 })

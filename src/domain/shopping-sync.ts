@@ -366,11 +366,17 @@ export async function startShoppingExport(
           inArray(syncSourceClaim.sourceKey, needs.sourceKeys),
         ),
       )
-    if (overlaps.some((run) => run.status === 'pending' || (run.status === 'uncertain' && !run.checkedAt)))
+    // AH reads the list first and only adds what is missing, so repeating it cannot double anything.
+    const listAware = data.target === 'ah'
+    if (overlaps.some((run) => run.status === 'pending'))
+      throw new Conflict(
+        'Een eerdere export is nog bezig. Open de exporthistorie en controleer eerst de status.',
+      )
+    if (!listAware && overlaps.some((run) => run.status === 'uncertain' && !run.checkedAt))
       throw new Conflict(
         'Een eerdere export is nog bezig of onzeker. Open de exporthistorie en controleer eerst de status.',
       )
-    if (overlaps.length && !data.allowRepeat)
+    if (!listAware && overlaps.length && !data.allowRepeat)
       throw new Conflict(
         'Een of meer bronnen zijn al naar dit doel geëxporteerd. Controleer de eerdere export en kies alleen bewust voor opnieuw exporteren.',
       )

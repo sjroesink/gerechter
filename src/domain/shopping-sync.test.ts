@@ -92,6 +92,24 @@ describe('boodschappenverbindingen en bronclaims', () => {
       expect(JSON.stringify(value)).not.toContain(reference.connectionKey)
   })
 
+  test('AH kijkt zelf wat al op de lijst staat: herhalen mag zonder herhaalkeuze, maar niet tijdens een lopende export', async () => {
+    const { a, input, deps, send, check } = await setup()
+    await saveAhConnection(a, { connectionId: crypto.randomUUID(), connectionKey: 'k'.repeat(43) }, SECRET)
+    deps.targets.ah = { send, check }
+    const request = { ...input, target: 'ah' as const }
+    send.mockResolvedValueOnce({ status: 'succeeded' })
+    await startShoppingExport(a, request, deps)
+    send.mockResolvedValueOnce({ status: 'uncertain', message: 'Onzeker' })
+    const uncertain = await startShoppingExport(a, { ...request, requestId: crypto.randomUUID() }, deps)
+    expect(uncertain.status).toBe('uncertain')
+    send.mockResolvedValueOnce({ status: 'pending' })
+    await startShoppingExport(a, { ...request, requestId: crypto.randomUUID() }, deps)
+    await expect(
+      startShoppingExport(a, { ...request, requestId: crypto.randomUUID() }, deps),
+    ).rejects.toBeInstanceOf(Conflict)
+    expect(send).toHaveBeenCalledTimes(3)
+  })
+
   test('loskoppelen bewaart een onzekere run; herstel van dezelfde Notion-bestemming maakt read-only controle weer mogelijk', async () => {
     const { a, input, deps, send, check } = await setup()
     const { pageId, token } = await connect(a)

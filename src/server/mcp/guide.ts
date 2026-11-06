@@ -84,13 +84,13 @@ export const agentGuide = {
     shopping:
       'Vraag prepare_shopping en get_shopping_targets op. Toon de te kopen regels en onbekende omrekeningen; exporteer alleen op expliciete opdracht met source, requestId en fingerprint uit dat voorstel. Voorraad wordt één keer afgetrokken; vrije en gemaakte geplande maaltijden tellen niet mee. Een losse receptkeuze is een aparte bron.',
     exportRecovery:
-      'Lees bij een onzeker resultaat get_shopping_export en gebruik check_shopping_export voor een read-only controle. Geen automatische nieuwe export of allowRepeat:true. Herhaal dezelfde aanvraag met dezelfde sleutel; een bewuste nieuwe export vereist controle en opdracht. Dag en week kunnen dezelfde bronclaims hebben.',
+      'Lees bij een onzeker resultaat get_shopping_export en gebruik check_shopping_export voor een read-only controle. Geen automatische nieuwe export of allowRepeat:true. Herhaal dezelfde aanvraag met dezelfde sleutel; een bewuste nieuwe export naar share of Notion vereist controle en opdracht. AH vult alleen aan wat nog niet (genoeg) op de lijst staat; een nieuwe AH-export op opdracht heeft geen allowRepeat nodig. Dag en week kunnen dezelfde bronclaims hebben.',
     share:
       'Een share-run zet tekst alleen klaar. confirm_shopping_share mag uitsluitend na werkelijk kopiëren, afronden van een deelmenu of annuleren. Gekopieerd en Deelmenu afgerond bewijzen geen ontvangst bij een ander.',
     providers:
       'Een eigenaar stelt Notion en AH in de webapp in. Vraag geen tokens, sleutels of AH-wachtwoord via MCP. AH is experimenteel en schrijft alleen naar de AH-boodschappenlijst, nooit naar winkelmandje of bestelling. Ontbrekende verbindingen zijn geen geslaagde live providercontrole.',
     ahProducts:
-      'Een ingrediënt kan per huishouden aan één AH-product gekoppeld zijn. Zoek met search_ah_products (met ingredientId) en koppel met link_ingredient_ah_product alleen een product dat bij het ingrediënt en de wens van de gebruiker past; raad geen verpakkingsinhoud (packAmount null als suggestedPackAmount ontbreekt of twijfelachtig is). prepare_shopping toont per item ahProduct (aantal verpakkingen, check = aantal controleren) en ahItems; een AH-export stuurt gekoppelde producten met dat aantal, opgeteld bij wat al op de lijst staat, en de rest als tekst.',
+      'Een ingrediënt kan per huishouden aan één AH-product gekoppeld zijn. Zoek met search_ah_products (met ingredientId) en koppel met link_ingredient_ah_product alleen een product dat bij het ingrediënt en de wens van de gebruiker past; raad geen verpakkingsinhoud (packAmount null als suggestedPackAmount ontbreekt of twijfelachtig is). prepare_shopping toont per item ahProduct (aantal verpakkingen, check = aantal controleren) en ahItems; een AH-export kijkt eerst wat al op de lijst staat: een gekoppeld product dat al in minstens dat aantal op de lijst staat en tekstregels die er al staan worden overgeslagen; een te laag aantal wordt opgehoogd en de rest toegevoegd.',
   },
 } as const
 

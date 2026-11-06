@@ -215,7 +215,12 @@ function ShoppingPage() {
                     </button>
                   ))}
                 </div>
-                {(previous.length > 0 || error) && (
+                {target === 'ah' && chosen && (
+                  <p className="px-1 text-[13px] text-ink-3">
+                    Wat al op je AH-lijst staat wordt overgeslagen; alleen wat ontbreekt wordt toegevoegd.
+                  </p>
+                )}
+                {(previous.length > 0 || error) && target !== 'ah' && (
                   <>
                     <label className="flex items-center gap-3 rounded-2xl bg-surface py-1 pr-4 pl-1">
                       <input

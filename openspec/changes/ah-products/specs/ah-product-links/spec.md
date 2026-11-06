@@ -62,15 +62,26 @@ Een wijziging van product of verpakkingsinhoud van een koppeling MUST een eerder
 - **THEN** wordt exporteren van dat voorstel als gewijzigd geweigerd en moet een actueel voorstel worden geopend
 
 ### Requirement: Productexport naar de AH-boodschappenlijst
-Een AH-export SHALL gekoppelde ingrediënten als productregels met AH-product-ID en aantal versturen en niet-gekoppelde ingrediënten als tekstregels zoals voorheen. Ingrediënten met hetzelfde product MUST tot één regel met opgeteld aantal worden samengevoegd. Staat het product al op de lijst, dan MUST het aantal worden opgeteld. Winkelmandje en bestellen MUST ongemoeid blijven.
+Een AH-export SHALL gekoppelde ingrediënten als productregels met AH-product-ID en aantal versturen en niet-gekoppelde ingrediënten als tekstregels zoals voorheen. Ingrediënten met hetzelfde product MUST tot één regel met opgeteld aantal worden samengevoegd. De export MUST eerst de lijst lezen: een product dat al in minstens het gevraagde aantal op de lijst staat wordt overgeslagen, een lager aantal wordt opgehoogd tot het gevraagde aantal. Winkelmandje en bestellen MUST ongemoeid blijven.
 
 #### Scenario: Gemengde export
 - **WHEN** een gerecht gekoppelde uien en niet-gekoppelde verse kruiden bevat
 - **THEN** komt het uienproduct met het berekende aantal en de kruiden als tekstregel op de AH-lijst
 
-#### Scenario: Product al op de lijst
+#### Scenario: Product al genoeg op de lijst
+- **WHEN** het product al met aantal 2 op de AH-lijst staat en de export 2 verpakkingen vraagt
+- **THEN** wordt voor dat product niets geschreven en staat het met aantal 2 op de lijst
+
+#### Scenario: Te weinig op de lijst
 - **WHEN** het product al met aantal 1 op de AH-lijst staat en de export 2 verpakkingen vraagt
-- **THEN** staat het product na de export met aantal 3 op de lijst
+- **THEN** staat het product na de export met aantal 2 op de lijst
+
+### Requirement: Herhalen naar AH zonder herhaalkeuze
+Omdat een AH-export alleen aanvult wat nog ontbreekt, SHALL een nieuwe AH-export van een eerder geëxporteerde of onzekere bron zonder expliciete herhaalkeuze mogelijk zijn. Tijdens een nog lopende AH-export van dezelfde bron MUST een nieuwe export worden geweigerd. Voor delen en Notion blijft de bestaande herhaalbescherming gelden.
+
+#### Scenario: Gerecht opnieuw naar AH
+- **WHEN** een lid een gerecht dat al naar AH is geëxporteerd opnieuw naar AH stuurt
+- **THEN** start de export zonder herhaalkeuze en blijven regels die al op de lijst staan ongewijzigd
 
 ### Requirement: Herhaalveiligheid van productregels
 De bestaande exportgaranties MUST ook voor productregels gelden: dezelfde export-ID met dezelfde inhoud schrijft niet opnieuw, voortgang wordt per regel duurzaam bewaard, na een mogelijk uitgevoerde schrijfactie wordt niet automatisch verder of opnieuw geschreven, en fouten bevatten geen geheimen of ruwe AH-antwoorden.

@@ -166,15 +166,30 @@ async def test_product_payload_uses_product_id_and_absolute_quantity(system: Sys
     assert line["target_quantity"] == 2 and line["status"] == "sent"
 
 
-async def test_product_already_on_list_gets_quantities_added(system: System):
+async def test_product_with_too_few_on_list_is_raised_to_the_needed_quantity(system: System):
     connection = await system.connect()
     cid = connection["connection_id"]
     system.backend.products[cid][1525] = {"description": "AH Uien", "quantity": 1}
     eid, _ = await system.start(connection, [], products=[product(1525, 2, "AH Uien")])
     assert (await system.finished(connection, eid))["status"] == "succeeded"
     assert len(system.backend.writes()) == 1
-    assert system.backend.writes()[0]["body"]["items"][0]["quantity"] == 3
+    assert system.backend.writes()[0]["body"]["items"][0]["quantity"] == 2
+    assert system.backend.products[cid][1525]["quantity"] == 2
+
+
+async def test_product_already_on_list_in_sufficient_quantity_is_not_written(system: System):
+    connection = await system.connect()
+    cid = connection["connection_id"]
+    system.backend.products[cid][1525] = {"description": "AH Uien", "quantity": 3}
+    eid, _ = await system.start(connection, [], products=[product(1525, 2, "AH Uien")])
+    result = await system.finished(connection, eid)
+    assert result["status"] == "succeeded" and result["completed"] == 1
+    assert system.backend.writes() == []
     assert system.backend.products[cid][1525]["quantity"] == 3
+    assert system.app.state.store.job(cid, eid)["lines"][0]["status"] == "present"
+    again, _ = await system.start(connection, [], products=[product(1525, 2, "AH Uien")])
+    assert (await system.finished(connection, again))["status"] == "succeeded"
+    assert system.backend.writes() == []
 
 
 async def test_product_lines_with_the_same_id_are_merged_and_capped(system: System):
@@ -335,7 +350,7 @@ async def test_inspection_confirms_product_only_at_or_above_target(system: Syste
     cid = connection["connection_id"]
     system.backend.products[cid][1525] = {"description": "AH Uien", "quantity": 1}
     system.backend.failures["AH Uien"] = "timeout-after"
-    eid, _ = await system.start(connection, [], products=[product(1525, 2, "AH Uien")])
+    eid, _ = await system.start(connection, [], products=[product(1525, 3, "AH Uien")])
     assert (await system.finished(connection, eid))["status"] == "uncertain"
     assert system.app.state.store.job(cid, eid)["lines"][0]["target_quantity"] == 3
     system.backend.products[cid][1525]["quantity"] = 2
