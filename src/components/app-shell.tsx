@@ -31,6 +31,7 @@ function TabBar() {
         <Link
           key={to}
           to={to}
+          activeOptions={{ includeSearch: false }}
           className="flex min-h-13 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold text-ink-3"
           activeProps={{ className: 'text-tomato! font-bold', 'aria-current': 'page' }}
         >
@@ -51,6 +52,7 @@ function Sidebar({ shell }: { shell: Shell }) {
           <Link
             key={to}
             to={to}
+            activeOptions={{ includeSearch: false }}
             className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-semibold text-ink-2 hover:bg-ground"
             activeProps={{ className: 'bg-tomato-soft text-tomato-dark! font-bold', 'aria-current': 'page' }}
           >

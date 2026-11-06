@@ -1,0 +1,22 @@
+# Optionele aanvulling: docker compose -f docker-compose.yml -f docker-compose.ah.yml up -d
+services:
+  ah:
+    build: ./sidecar
+    image: gerechter-ah:local
+    restart: unless-stopped
+    environment:
+      AH_SIDECAR_SECRET: ${AH_SIDECAR_SECRET:?Stel een AH_SIDECAR_SECRET van minstens 32 tekens in}
+      AH_DATABASE: /data/appie.sqlite
+    user: '${AH_UID:-1000}:${AH_GID:-1000}'
+    ports:
+      - '127.0.0.1:${AH_SIDECAR_PORT:-3001}:8000'
+    volumes:
+      - ${DATA_DIR:-./data}/ah:/data
+
+  app:
+    depends_on:
+      ah:
+        condition: service_healthy
+    environment:
+      AH_SIDECAR_URL: http://ah:8000
+      AH_SIDECAR_SECRET: ${AH_SIDECAR_SECRET}

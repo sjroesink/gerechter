@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { LogOutIcon } from '~/components/icons'
 import { Button, DetailHeader, Page } from '~/components/ui'
+import { ThemeSelect } from '~/components/theme-select'
 import { authClient } from '~/lib/auth-client'
 
 export const Route = createFileRoute('/_app/meer/account')({
@@ -24,6 +25,7 @@ function AccountPage() {
             <dd className="text-base font-semibold break-all">{shell.user.email}</dd>
           </div>
         </dl>
+        <ThemeSelect />
         <p className="px-1 text-[13px] text-ink-3">
           Wachtwoord vergeten? Vraag de beheerder om een herstellink.
         </p>

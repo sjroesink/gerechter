@@ -20,6 +20,7 @@ export function createAuth(db: Db, env: Env) {
   return betterAuth({
     appName: 'Gerechter',
     baseURL: env.PUBLIC_BASE_URL,
+    trustedOrigins: process.env.NODE_ENV === 'development' ? [`http://main-pc:${env.PORT}`] : [],
     secret: env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(db, { provider: 'pg', usePlural: false, camelCase: false }),
     advanced: { database: { generateId: () => crypto.randomUUID() } },

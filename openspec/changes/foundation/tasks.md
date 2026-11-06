@@ -50,7 +50,7 @@
 - [x] 7.2 Bouw de toestemmingspagina `/consent` (verlenen en weigeren) en verifieer met een test dat weigeren geen token oplevert
 - [x] 7.3 Implementeer de server route `/mcp` met `createMcpHandler` en `requireMcpAuth`, plus `ctxFromMcpToken` en de tool `whoami`, en verifieer met integratietests: geen token geeft 401 met `WWW-Authenticate`, een geldig token laat `whoami` gebruiker en huishoudens teruggeven, en zonder huishouden volgt een foutmelding
 - [x] 7.4 Bouw de pagina `/meer/verbonden-apps` (verleende clients tonen en intrekken) en verifieer met een test dat een ingetrokken client daarna 401 krijgt
-- [ ] 7.5 Verbind Claude Code handmatig met `http://localhost:3000/mcp`, doorloop de OAuth-flow, roep `whoami` aan, en leg de stappen vast in `README.md`
+- [x] 7.5 Verbind Claude Code handmatig met `http://localhost:3000/mcp`, doorloop de OAuth-flow, roep `whoami` aan, en leg de stappen vast in `README.md`
 
 ## 8. Container en health (spec: deployment)
 

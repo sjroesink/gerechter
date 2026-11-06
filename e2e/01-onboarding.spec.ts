@@ -1,5 +1,5 @@
 import { expect, openPage, test } from './test'
-import { PASSWORD, admin, login, logout, readLink, register, sql } from './helpers'
+import { PASSWORD, admin, expectMobileLayout, login, logout, readLink, register, sql } from './helpers'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -12,6 +12,7 @@ test('eerste start toont de setuppagina', async ({ page }) => {
   await page.goto('/')
   await expect(page).toHaveURL(/\/setup$/)
   await expect(page.getByRole('heading', { name: 'Welkom', exact: true })).toBeVisible()
+  await expectMobileLayout(page)
 })
 
 test('setup weigert een ander e-mailadres en maakt daarna de beheerder aan', async ({ page }) => {
@@ -31,6 +32,7 @@ test('setup weigert een ander e-mailadres en maakt daarna de beheerder aan', asy
 test('setuppagina is daarna niet meer beschikbaar', async ({ page }) => {
   await page.goto('/setup')
   await expect(page.getByRole('heading', { name: 'Setup niet beschikbaar', exact: true })).toBeVisible()
+  await expectMobileLayout(page)
 })
 
 test('beheerder nodigt een nieuw huishouden uit', async ({ page }) => {
@@ -45,6 +47,7 @@ test('beheerder nodigt een nieuw huishouden uit', async ({ page }) => {
 test('registreren zonder uitnodiging kan niet; met uitnodiging start je een huishouden', async ({ page }) => {
   await page.goto('/uitnodiging/bestaat-niet')
   await expect(page.getByRole('heading', { name: 'Uitnodiging ongeldig', exact: true })).toBeVisible()
+  await expectMobileLayout(page)
 
   await register(page, householdInvite, sanne.name, sanne.email)
   await page.goto('/meer')
@@ -53,6 +56,7 @@ test('registreren zonder uitnodiging kan niet; met uitnodiging start je een huis
 
   await page.goto(householdInvite)
   await expect(page.getByText('al gebruikt')).toBeVisible()
+  await expectMobileLayout(page)
 })
 
 test('eigenaar nodigt een lid uit, dat via de link registreert', async ({ page, browser }) => {
@@ -86,6 +90,7 @@ test('een verlopen uitnodiging toont een melding', async ({ page }) => {
   await page.goto(link)
   await expect(page.getByText('verlopen')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Account aanmaken' })).toHaveCount(0)
+  await expectMobileLayout(page)
 })
 
 test('bestaand account accepteert een uitnodiging en kan wisselen', async ({ page, browser }) => {
@@ -98,6 +103,7 @@ test('bestaand account accepteert een uitnodiging en kan wisselen', async ({ pag
 
   await login(page, admin.email)
   await page.goto(link)
+  await expectMobileLayout(page)
   await page.getByRole('button', { name: 'Uitnodiging accepteren' }).click()
   await expect(page).toHaveURL(/\/week$/)
 
@@ -122,6 +128,7 @@ test('gebruiker met één huishouden ziet geen wisselaar', async ({ page }) => {
 
 test('ongeldige inloggegevens geven een algemene melding', async ({ page }) => {
   await page.goto('/login')
+  await expectMobileLayout(page)
   await page.getByLabel('E-mailadres').fill('onbekend@e2e.test')
   await page.getByLabel('Wachtwoord').fill('verkeerd-wachtwoord')
   await page.getByRole('button', { name: 'Inloggen' }).click()
@@ -152,9 +159,11 @@ test('beheerder maakt een herstellink en de gebruiker stelt een nieuw wachtwoord
 
   const user = await openPage(browser)
   await user.goto(link)
+  await expectMobileLayout(user)
   await user.getByLabel('Nieuw wachtwoord').fill('nieuw-wachtwoord-123')
   await user.getByRole('button', { name: 'Wachtwoord instellen' }).click()
   await expect(user.getByRole('heading', { name: 'Wachtwoord ingesteld', exact: true })).toBeVisible()
+  await expectMobileLayout(user)
   await login(user, tim.email, 'nieuw-wachtwoord-123')
   await user.close()
 })

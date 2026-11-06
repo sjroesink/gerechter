@@ -28,18 +28,29 @@ export default defineConfig({
   },
   webServer: EXTERNAL
     ? undefined
-    : {
-        // Tegen een productiebuild: stabieler dan de dev-server en test meteen build + start (met migraties).
-        command: `node e2e/prepare-db.mjs && pnpm build && node scripts/start.mjs`,
-        url: `${BASE_URL}/login`,
-        reuseExistingServer: false,
-        timeout: 300_000,
-        env: {
-          DATABASE_URL: E2E_DATABASE_URL,
-          PUBLIC_BASE_URL: BASE_URL,
-          BETTER_AUTH_SECRET: 'e2e-secret-e2e-secret-e2e-secret-0000',
-          ADMIN_EMAIL: E2E_ADMIN_EMAIL,
-          PORT: String(PORT),
+    : [
+        {
+          command:
+            'uv run --project sidecar uvicorn tests.e2e_service:create_test_app --factory --app-dir sidecar --host 127.0.0.1 --port 3102 --workers 1 --no-access-log',
+          url: 'http://127.0.0.1:3102/health',
+          reuseExistingServer: false,
+          timeout: 60_000,
         },
-      },
+        {
+          // Tegen een productiebuild: stabieler dan de dev-server en test meteen build + start (met migraties).
+          command: `node e2e/prepare-db.mjs && pnpm build && node scripts/start.mjs`,
+          url: `${BASE_URL}/login`,
+          reuseExistingServer: false,
+          timeout: 300_000,
+          env: {
+            DATABASE_URL: E2E_DATABASE_URL,
+            PUBLIC_BASE_URL: BASE_URL,
+            BETTER_AUTH_SECRET: 'e2e-secret-e2e-secret-e2e-secret-0000',
+            ADMIN_EMAIL: E2E_ADMIN_EMAIL,
+            PORT: String(PORT),
+            AH_SIDECAR_URL: 'http://127.0.0.1:3102',
+            AH_SIDECAR_SECRET: 'sidecar-test-secret-with-at-least-32-characters',
+          },
+        },
+      ],
 })

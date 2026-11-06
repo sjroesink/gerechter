@@ -41,7 +41,7 @@ async function createHouseholdFor(db: DbOrTx, userId: string, name: string) {
 }
 
 /** Verwerkt een (al op geldigheid gecontroleerde) uitnodiging voor een gebruiker, binnen één transactie. */
-async function applyInvite(db: Db, token: string, userId: string): Promise<string> {
+async function applyInvite(db: DbOrTx, token: string, userId: string): Promise<string> {
   return db.transaction(async (tx) => {
     const used = await consumeInvite(tx, token, userId)
     if (used.kind === 'new_household') {

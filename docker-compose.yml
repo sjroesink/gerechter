@@ -31,5 +31,7 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       PORT: 3000
+      AH_SIDECAR_URL: ${AH_SIDECAR_URL:-}
+      AH_SIDECAR_SECRET: ${AH_SIDECAR_SECRET:-}
     ports:
       - '${APP_PORT:-3000}:3000'

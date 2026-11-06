@@ -19,6 +19,7 @@ function LoginPage() {
   const search = Route.useSearch()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -48,7 +49,24 @@ function LoginPage() {
       {error && <Notice tone="error">{error}</Notice>}
       <form method="post" onSubmit={submit} className="flex flex-col gap-4">
         <Field label="E-mailadres" name="email" type="email" autoComplete="email" required />
-        <Field label="Wachtwoord" name="password" type="password" autoComplete="current-password" required />
+        <Field
+          id="login-password"
+          label="Wachtwoord"
+          name="password"
+          type={showPassword ? 'text' : 'password'}
+          autoComplete="current-password"
+          autoCapitalize="none"
+          spellCheck={false}
+          required
+        />
+        <Button
+          variant="ghost"
+          aria-controls="login-password"
+          aria-pressed={showPassword}
+          onClick={() => setShowPassword((visible) => !visible)}
+        >
+          {showPassword ? 'Wachtwoord verbergen' : 'Wachtwoord tonen'}
+        </Button>
         <Button type="submit" disabled={busy}>
           {busy ? 'Bezig…' : 'Inloggen'}
         </Button>

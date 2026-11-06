@@ -7,8 +7,8 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
-# De server-bundle in .output is zelfstandig; alleen het migratie-/startscript heeft nog pg en drizzle-orm nodig.
-RUN node -e "const p=require('./package.json');require('fs').writeFileSync('/runtime-package.json',JSON.stringify({name:'gerechter-runtime',private:true,type:'module',dependencies:{pg:p.dependencies.pg,'drizzle-orm':p.dependencies['drizzle-orm']}}))"
+# De server-bundle in .output is zelfstandig; de opstartscripts gebruiken pg, drizzle-orm en zod.
+RUN node -e "const p=require('./package.json');require('fs').writeFileSync('/runtime-package.json',JSON.stringify({name:'gerechter-runtime',private:true,type:'module',dependencies:{pg:p.dependencies.pg,'drizzle-orm':p.dependencies['drizzle-orm'],zod:p.dependencies.zod}}))"
 
 FROM node:24-alpine AS runtime
 WORKDIR /app

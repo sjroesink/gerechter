@@ -9,6 +9,7 @@ import {
 } from '~/domain/households'
 import { createMemberInvite, inviteUrl, listOpenInvites, revokeInvite } from '~/domain/invites'
 import { appDeps, sessionCtx, sessionUserCtx, toResult } from './fn'
+import { getHouseholdPreferences } from '~/domain/preferences'
 
 const id = z.string().max(100)
 
@@ -17,6 +18,7 @@ export const getHouseholdPage = createServerFn({ method: 'GET' }).handler(() =>
     const ctx = await sessionCtx()
     return {
       household: ctx.household,
+      preferences: await getHouseholdPreferences(ctx),
       members: await getMembers(ctx),
       invites: ctx.household.role === 'owner' ? await listOpenInvites(ctx) : [],
     }

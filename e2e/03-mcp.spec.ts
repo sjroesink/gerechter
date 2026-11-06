@@ -1,10 +1,29 @@
 import { createHash, randomBytes } from 'node:crypto'
 import type { APIRequestContext, Page } from '@playwright/test'
 import { E2E_BASE_URL } from '../playwright.config'
-import { admin, PASSWORD, submitLogin } from './helpers'
+import { admin, expectMobileLayout, PASSWORD, submitLogin } from './helpers'
 import { expect, test } from './test'
 
 const redirectUri = 'http://127.0.0.1:9876/callback'
+
+test('OAuth-discovery publiceert metadata voor de MCP-resource en de autorisatieserver', async ({
+  request,
+}) => {
+  const resource = await request.get('/.well-known/oauth-protected-resource/mcp')
+  expect(resource.status()).toBe(200)
+  const metadata = await resource.json()
+  expect(metadata.resource).toBe(`${E2E_BASE_URL}/mcp`)
+  expect(metadata.authorization_servers).toEqual([`${E2E_BASE_URL}/api/auth`])
+
+  const server = await request.get('/.well-known/oauth-authorization-server/api/auth')
+  expect(server.status()).toBe(200)
+  expect(await server.json()).toMatchObject({
+    issuer: `${E2E_BASE_URL}/api/auth`,
+    authorization_endpoint: `${E2E_BASE_URL}/api/auth/oauth2/authorize`,
+    token_endpoint: `${E2E_BASE_URL}/api/auth/oauth2/token`,
+    code_challenge_methods_supported: expect.arrayContaining(['S256']),
+  })
+})
 
 async function registerClient(request: APIRequestContext, name: string) {
   const res = await request.post('/api/auth/oauth2/register', {
@@ -46,14 +65,34 @@ async function startAuthorization(page: Page, request: APIRequestContext, name: 
 }
 
 async function callWhoami(request: APIRequestContext, token: string) {
+  return callTool(request, token, 'whoami')
+}
+async function callTool(
+  request: APIRequestContext,
+  token: string,
+  name: string,
+  args: Record<string, unknown> = {},
+) {
   return request.post('/mcp', {
     headers: {
       authorization: `Bearer ${token}`,
       accept: 'application/json, text/event-stream',
       'mcp-protocol-version': '2025-06-18',
     },
-    data: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'whoami', arguments: {} } },
+    data: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } },
   })
+}
+async function readTool(response: Awaited<ReturnType<typeof callTool>>) {
+  const text = await response.text()
+  const body = JSON.parse(
+    text.startsWith('{')
+      ? text
+      : text
+          .split('\n')
+          .find((line) => line.startsWith('data: '))!
+          .slice(6),
+  )
+  return body.result as { isError?: boolean; content: { text: string }[] }
 }
 
 test('agent koppelen: inloggen, toestemming geven, whoami aanroepen en daarna intrekken', async ({
@@ -66,6 +105,7 @@ test('agent koppelen: inloggen, toestemming geven, whoami aanroepen en daarna in
 
   await expect(page).toHaveURL(/\/consent/)
   await expect(page.getByRole('heading', { name: 'Toegang geven', exact: true })).toBeVisible()
+  await expectMobileLayout(page)
   await page.locator('html[data-hydrated]').waitFor({ state: 'attached' })
   await page.getByRole('button', { name: 'Toestaan' }).click()
   await expect.poll(() => flow.getCallback()?.searchParams.get('code')).toBeTruthy()
@@ -86,6 +126,32 @@ test('agent koppelen: inloggen, toestemming geven, whoami aanroepen en daarna in
   const whoami = await callWhoami(request, token)
   expect(whoami.status()).toBe(200)
   expect(await whoami.text()).toContain(admin.email)
+
+  const households = JSON.parse(
+    (await readTool(await callTool(request, token, 'list_households'))).content[0]!.text,
+  )
+  const original = households.activeHousehold.id
+  const other = households.households.find((item: { id: string }) => item.id !== original)
+  expect(other).toMatchObject({ name: 'Familie de Vries', role: 'member' })
+  const switched = await readTool(
+    await callTool(request, token, 'switch_household', { householdId: other.id }),
+  )
+  expect(switched.isError).not.toBe(true)
+  await page.goto('/meer')
+  await expect(page.getByRole('combobox', { name: 'Huishouden' })).toHaveValue(other.id)
+  await expectMobileLayout(page)
+  const denied = await readTool(
+    await callTool(request, token, 'switch_household', { householdId: crypto.randomUUID() }),
+  )
+  expect(denied.isError).toBe(true)
+  expect(denied.content[0]!.text).toBe('Huishouden niet gevonden.')
+  await page.reload()
+  await expect(page.getByRole('combobox', { name: 'Huishouden' })).toHaveValue(other.id)
+  await page.getByRole('combobox', { name: 'Huishouden' }).selectOption(original)
+  await expect(page.getByRole('link', { name: /^Huishouden/ })).toContainText('Huishouden van Beheerder')
+  expect(
+    JSON.parse((await readTool(await callWhoami(request, token))).content[0]!.text).activeHousehold.id,
+  ).toBe(original)
 
   await page.goto('/meer/verbonden-apps')
   const row = page.getByRole('listitem').filter({ hasText: 'E2E-agent' })

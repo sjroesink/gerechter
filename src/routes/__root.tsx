@@ -1,5 +1,6 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import { useEffect, type ReactNode } from 'react'
+import { themeInitScript, watchTheme } from '~/lib/theme'
 import appCss from '~/styles/app.css?url'
 
 export const Route = createRootRoute({
@@ -7,7 +8,6 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
-      { name: 'theme-color', content: '#f3f5f1' },
       { title: 'Gerechter' },
     ],
     links: [
@@ -35,11 +35,13 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   useEffect(() => {
     // Markering voor e2e-tests: React is gehydrateerd en formulieren werken.
     document.documentElement.dataset.hydrated = 'true'
+    return watchTheme()
   }, [])
   return (
-    <html lang="nl">
+    <html lang="nl" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>
         {children}

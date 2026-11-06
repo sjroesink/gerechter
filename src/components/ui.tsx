@@ -1,6 +1,6 @@
 import { Link, type LinkProps } from '@tanstack/react-router'
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
-import { ChevronLeftIcon, ChevronRightIcon } from './icons'
+import { useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
+import { ChevronLeftIcon, ChevronRightIcon, SearchIcon } from './icons'
 
 export function cx(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(' ')
@@ -9,7 +9,7 @@ export function cx(...classes: (string | false | null | undefined)[]) {
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-tomato text-white hover:bg-tomato-dark disabled:opacity-60',
+  primary: 'bg-tomato text-surface hover:bg-tomato-dark disabled:opacity-60',
   secondary: 'bg-surface text-ink border border-line hover:bg-ground',
   danger: 'bg-surface text-tomato-dark border border-line hover:bg-tomato-soft',
   ghost: 'bg-transparent text-tomato hover:text-tomato-dark',
@@ -48,16 +48,22 @@ export function DetailHeader({
   subtitle,
   back,
   backLabel,
+  backParams,
+  backSearch,
 }: {
   title: string
   subtitle?: string
   back: LinkProps['to']
   backLabel: string
+  backParams?: LinkProps['params']
+  backSearch?: LinkProps['search']
 }) {
   return (
     <header className="flex items-center gap-1 px-2 pt-4 pb-2 lg:px-0 lg:pt-0">
       <Link
         to={back}
+        params={backParams}
+        search={backSearch}
         aria-label={backLabel}
         className="flex size-11 shrink-0 items-center justify-center rounded-full text-ink hover:bg-muted"
       >
@@ -120,15 +126,28 @@ export function Field({
   hint,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
+  const generatedId = useId()
+  const id = props.id ?? generatedId
+  const hintId = `${id}-hint`
   return (
-    <label className="flex flex-col gap-2">
-      <span className="text-[15px] font-semibold">{label}</span>
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className="text-[15px] font-semibold">
+        {label}
+      </label>
       <input
         className="min-h-12 rounded-2xl border border-line bg-surface px-4 text-base text-ink outline-none focus:border-tomato focus:ring-2 focus:ring-tomato-soft"
         {...props}
+        id={id}
+        aria-describedby={
+          [props['aria-describedby'], hint ? hintId : undefined].filter(Boolean).join(' ') || undefined
+        }
       />
-      {hint && <span className="text-[13px] text-ink-3">{hint}</span>}
-    </label>
+      {hint && (
+        <span id={hintId} className="text-[13px] text-ink-3">
+          {hint}
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -189,5 +208,185 @@ export function AuthCard({
       </div>
       {children}
     </main>
+  )
+}
+
+/** Zoekveld als pil met vergrootglas; het label is alleen voor schermlezers. */
+export function SearchField({
+  label,
+  className,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+  return (
+    <label
+      className={cx(
+        'flex min-h-12 items-center gap-2.5 rounded-full border border-line bg-surface px-4 focus-within:border-tomato focus-within:ring-2 focus-within:ring-tomato-soft',
+        className,
+      )}
+    >
+      <SearchIcon size={20} className="shrink-0 text-ink-3" />
+      <span className="sr-only">{label}</span>
+      <input
+        type="search"
+        className="min-h-11 min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-3"
+        {...props}
+      />
+    </label>
+  )
+}
+
+type IconButtonVariant = 'primary' | 'secondary' | 'plain'
+
+const iconButtonVariants: Record<IconButtonVariant, string> = {
+  primary: 'bg-tomato text-surface hover:bg-tomato-dark',
+  secondary: 'border border-line bg-surface text-ink hover:bg-ground',
+  plain: 'text-ink-2 hover:bg-muted',
+}
+
+/** Ronde knop van 44 px met alleen een icoon; geef altijd een aria-label mee. */
+export function iconButtonClass(variant: IconButtonVariant = 'primary', extra?: string) {
+  return cx(
+    'inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tomato disabled:opacity-50',
+    iconButtonVariants[variant],
+    extra,
+  )
+}
+
+/** Groen label voor tags van een gerecht. */
+export function Tag({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-full bg-herb-soft px-2.5 py-1 text-[13px] font-semibold text-herb-dark">
+      {children}
+    </span>
+  )
+}
+
+/** Kleine statuslabel, bijvoorbeeld "tekort", "basis" of "in huis". */
+export function Badge({
+  tone = 'neutral',
+  children,
+}: {
+  tone?: 'neutral' | 'herb' | 'tomato' | 'amber'
+  children: ReactNode
+}) {
+  const tones = {
+    neutral: 'bg-line-soft text-ink-2',
+    herb: 'bg-herb-soft text-herb-dark',
+    tomato: 'bg-tomato-soft text-tomato-dark',
+    amber: 'bg-amber-soft text-amber-ink',
+  }
+  return (
+    <span className={cx('shrink-0 rounded-full px-2 py-1 text-xs font-bold whitespace-nowrap', tones[tone])}>
+      {children}
+    </span>
+  )
+}
+
+/** Teller met min- en plusknop, zoals voor het aantal personen. */
+export function Stepper({
+  value,
+  onChange,
+  label,
+  min = 1,
+  max = 1000,
+  step = 1,
+  disabled,
+  format = String,
+  size = 'md',
+}: {
+  value: number
+  onChange: (value: number) => void
+  /** Zelfstandig naamwoord voor de knoplabels: "Minder <label>" en "Meer <label>". */
+  label: string
+  min?: number
+  max?: number
+  step?: number
+  disabled?: boolean
+  format?: (value: number) => string
+  size?: 'md' | 'lg'
+}) {
+  const button = cx(
+    'inline-flex shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink hover:bg-ground disabled:opacity-40',
+    size === 'lg' ? 'size-13 text-2xl' : 'size-11 text-xl',
+  )
+  return (
+    <div className={cx('flex items-center', size === 'lg' ? 'gap-5' : 'gap-1')}>
+      <button
+        type="button"
+        aria-label={`Minder ${label}`}
+        className={button}
+        disabled={disabled || value - step < min}
+        onClick={() => onChange(Math.max(min, value - step))}
+      >
+        −
+      </button>
+      <output
+        aria-live="polite"
+        className={cx(
+          'text-center font-bold tabular-nums',
+          size === 'lg' ? 'min-w-24 font-display text-5xl leading-none' : 'min-w-8 text-lg',
+        )}
+      >
+        {format(value)}
+      </output>
+      <button
+        type="button"
+        aria-label={`Meer ${label}`}
+        className={button}
+        disabled={disabled || value + step > max}
+        onClick={() => onChange(Math.min(max, value + step))}
+      >
+        +
+      </button>
+    </div>
+  )
+}
+
+/** Container voor segmentknoppen (gebruik `segmentClass` op de knoppen of links erin). */
+export function SegmentGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="grid auto-cols-fr grid-flow-col gap-1 rounded-[14px] bg-muted p-1"
+    >
+      {children}
+    </div>
+  )
+}
+
+export function segmentClass(active: boolean) {
+  return cx(
+    'flex min-h-11 items-center justify-center rounded-[10px] px-2 text-sm font-semibold transition-colors',
+    active ? 'bg-surface text-ink shadow-[0_1px_2px_rgba(24,32,27,0.12)]' : 'text-ink-2 hover:text-ink',
+  )
+}
+
+/** Filterchip; de actieve chip is donker gevuld. */
+export function chipClass(active: boolean) {
+  return cx(
+    'inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold transition-colors',
+    active ? 'border-ink bg-ink text-surface' : 'border-line bg-surface text-ink hover:bg-ground',
+  )
+}
+
+/** Witte kaart als rij in een lijst (dag in de week, gerecht in de lijst). */
+export const rowCardClass =
+  'flex min-h-16 items-center gap-3.5 rounded-2xl bg-surface px-3.5 py-2 text-ink transition-colors hover:bg-muted'
+
+/** Rij binnen een gegroepeerde witte lijst met scheidingslijnen. */
+export const groupRowClass =
+  'flex min-h-14 items-center gap-3 border-b border-line-soft px-4 py-2 last:border-b-0 hover:bg-ground'
+
+/**
+ * Actiebalk onderaan een detailscherm. Blijft op mobiel boven de tabbalk staan;
+ * op desktop staat hij gewoon onder de inhoud.
+ */
+export function ActionBar({ children }: { children: ReactNode }) {
+  return (
+    <div className="sticky bottom-[calc(69px+max(0px,env(safe-area-inset-bottom)-12px))] z-[5] -mx-4 mt-auto flex flex-col gap-2.5 border-t border-line bg-ground px-5 pt-3 pb-5 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0">
+      {children}
+    </div>
   )
 }

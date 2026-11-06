@@ -5,19 +5,26 @@ import type { Db } from '~/db/client'
 import { hasConsent } from '~/domain/connected-apps'
 import type { Env } from '~/lib/env'
 import { buildMcpServer, ctxFromMcpToken } from './server'
+import { createShoppingDeps } from '../shopping-targets'
+import { createRecipeImportDeps, type RecipeImportDeps } from '../recipe-import'
 
 /**
  * Request-handler voor `/mcp`: OAuth-token verplicht, daarna een stateless MCP-server per verzoek.
  *
  * `jwksUrl`: waar de server zijn eigen signeersleutels ophaalt om tokens te controleren. Standaard via de
  * publieke URL; in een container is die vaak niet bereikbaar, dus de app geeft daar het interne adres mee.
+ *
+ * `recipeImport`: uitgaande verzoeken voor receptimport; tests geven een nep-fetcher mee.
  */
 export function createMcpRequestHandler(deps: {
   db: Db
   auth: Auth
-  env: Pick<Env, 'PUBLIC_BASE_URL'>
+  env: Pick<Env, 'PUBLIC_BASE_URL' | 'BETTER_AUTH_SECRET'> &
+    Partial<Pick<Env, 'AH_SIDECAR_URL' | 'AH_SIDECAR_SECRET'>>
   jwksUrl?: string
+  recipeImport?: RecipeImportDeps
 }) {
+  const recipeImport = deps.recipeImport ?? createRecipeImportDeps()
   const metadataUrl = `${deps.env.PUBLIC_BASE_URL}/.well-known/oauth-protected-resource/mcp`
   return requireMcpAuth(
     deps.auth,
@@ -35,7 +42,16 @@ export function createMcpRequestHandler(deps: {
           },
         )
       }
-      const handler = createMcpHandler(() => buildMcpServer(() => ctxFromMcpToken(deps.db, claims)))
+      const handler = createMcpHandler(() =>
+        buildMcpServer(
+          () => ctxFromMcpToken(deps.db, claims),
+          createShoppingDeps(deps.env.BETTER_AUTH_SECRET, {
+            url: deps.env.AH_SIDECAR_URL ?? '',
+            secret: deps.env.AH_SIDECAR_SECRET ?? '',
+          }),
+          recipeImport,
+        ),
+      )
       return handler.fetch(request)
     },
     { resource: mcpResource(deps.env), ...(deps.jwksUrl ? { jwksUrl: deps.jwksUrl } : {}) },

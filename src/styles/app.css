@@ -22,8 +22,29 @@
   --color-amber-soft: #fff1d6;
 }
 
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-ground: #141211;
+  --color-surface: #1e1b19;
+  --color-ink: #f4efe9;
+  --color-ink-2: #cbc3ba;
+  --color-ink-3: #a39a90;
+  --color-line: #3a3531;
+  --color-line-soft: #2a2623;
+  --color-muted: #2b2724;
+  --color-tomato: #ff7a5e;
+  --color-tomato-dark: #ffa08a;
+  --color-tomato-soft: #3d211b;
+  --color-herb: #7fc99c;
+  --color-herb-dark: #9fd9b4;
+  --color-herb-soft: #1c3325;
+  --color-amber-ink: #f2c46d;
+  --color-amber-soft: #352a17;
+}
+
 @layer base {
   html {
+    color-scheme: light;
     -webkit-tap-highlight-color: transparent;
   }
   body {

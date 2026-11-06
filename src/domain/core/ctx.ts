@@ -1,5 +1,5 @@
 import { and, asc, eq } from 'drizzle-orm'
-import type { Db } from '~/db/client'
+import type { DbOrTx } from '~/db/client'
 import { household, membership, user, type HouseholdRole } from '~/db/schema'
 import { Forbidden, NoActiveHousehold, NotFound } from './errors'
 
@@ -8,12 +8,12 @@ export type PlatformRole = 'user' | 'admin'
 export type CtxUser = { id: string; name: string; email: string; role: PlatformRole }
 
 /** Context voor acties van een ingelogde gebruiker, los van een huishouden (bijv. uitnodiging accepteren). */
-export type UserCtx = { db: Db; user: CtxUser }
+export type UserCtx = { db: DbOrTx; user: CtxUser }
 
 /** Context voor alles wat huishoudgegevens raakt. Domeinfuncties scopen altijd op `household.id`. */
 export type Ctx = UserCtx & { household: { id: string; name: string; role: HouseholdRole } }
 
-export async function loadUserCtx(db: Db, userId: string): Promise<UserCtx> {
+export async function loadUserCtx(db: DbOrTx, userId: string): Promise<UserCtx> {
   const [row] = await db
     .select({ id: user.id, name: user.name, email: user.email, role: user.role })
     .from(user)
@@ -26,7 +26,7 @@ export async function loadUserCtx(db: Db, userId: string): Promise<UserCtx> {
  * Bepaalt het actieve huishouden: `lastActiveHouseholdId` als de gebruiker daar nog lid van is,
  * anders het oudste lidmaatschap (dat wordt dan bewaard). Zonder lidmaatschap: NoActiveHousehold.
  */
-export async function resolveCtx(db: Db, userId: string): Promise<Ctx> {
+export async function resolveCtx(db: DbOrTx, userId: string): Promise<Ctx> {
   const userCtx = await loadUserCtx(db, userId)
   const [current] = await db.select({ id: user.lastActiveHouseholdId }).from(user).where(eq(user.id, userId))
 
@@ -45,7 +45,7 @@ export async function resolveCtx(db: Db, userId: string): Promise<Ctx> {
   return { ...userCtx, household: active }
 }
 
-export async function membershipOf(db: Db, userId: string, householdId: string) {
+export async function membershipOf(db: DbOrTx, userId: string, householdId: string) {
   const [row] = await db
     .select({ role: membership.role })
     .from(membership)

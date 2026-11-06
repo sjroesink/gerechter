@@ -12,3 +12,7 @@ test-results/
 *.log
 .DS_Store
 data-*/
+sidecar/.venv/
+sidecar/.pytest_cache/
+sidecar/.ruff_cache/
+**/__pycache__/

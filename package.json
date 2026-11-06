@@ -6,16 +6,16 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "vite dev",
+    "dev": "node --env-file-if-exists=.env node_modules/vite/bin/vite.js dev",
     "build": "vite build",
-    "start": "node scripts/start.mjs",
+    "start": "node --env-file-if-exists=.env scripts/start.mjs",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node scripts/migrate.mjs",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
@@ -23,6 +23,8 @@
     "@better-auth/mcp": "^1.7.17",
     "@better-auth/oauth-provider": "1.7.17",
     "@modelcontextprotocol/server": "^2.4.0",
+    "@openuidev/lang-core": "1.1.0",
+    "@openuidev/react-lang": "1.1.0",
     "@tanstack/react-router": "^1.170.46",
     "@tanstack/react-start": "^1.169.4",
     "better-auth": "^1.7.17",
@@ -30,6 +32,7 @@
     "pg": "^8.23.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "undici": "^8.12.3",
     "zod": "^4.6.7"
   },
   "devDependencies": {

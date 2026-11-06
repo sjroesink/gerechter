@@ -5,6 +5,26 @@ import { E2E_ADMIN_EMAIL, E2E_DATABASE_URL } from '../playwright.config'
 export const PASSWORD = 'een-goed-wachtwoord'
 export const admin = { name: 'Beheerder', email: E2E_ADMIN_EMAIL }
 
+/** Controleert dezelfde mobiele eisen op publieke pagina's en pagina's binnen de app-schil. */
+export async function expectMobileLayout(page: Page) {
+  expect(page.viewportSize()?.width).toBe(360)
+  await page.waitForLoadState('networkidle')
+  const path = new URL(page.url()).pathname
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(overflow, `horizontaal scrollen op ${path}`).toBeLessThanOrEqual(0)
+  const small = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('a[href], button, select, input:not([type=hidden])')]
+      .filter((el) => el.getClientRects().length > 0)
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ r }) => r.width < 44 || r.height < 44)
+      .map(
+        ({ el, r }) =>
+          `${el.tagName} "${el.textContent?.trim().slice(0, 30)}" ${Math.round(r.width)}×${Math.round(r.height)}`,
+      ),
+  )
+  expect(small, `te kleine aanraakdoelen op ${path}`).toEqual([])
+}
+
 /**
  * Vult het inlogformulier in en verstuurt het. In productie (bijv. de docker-compose-stack) geldt
  * rate limiting op inloggen; dan wachten we het venster af en proberen we het opnieuw.
@@ -46,6 +66,7 @@ export async function logout(page: Page) {
 
 export async function register(page: Page, link: string, name: string, email: string) {
   await page.goto(link)
+  await expectMobileLayout(page)
   await page.getByLabel('Naam').fill(name)
   await page.getByLabel('E-mailadres').fill(email)
   await page.getByLabel('Wachtwoord').fill(PASSWORD)

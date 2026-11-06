@@ -12,7 +12,9 @@ export function waitForHydrationOnGoto(page: Page): Page {
 }
 
 export async function openPage(browser: Browser): Promise<Page> {
-  return waitForHydrationOnGoto(await browser.newPage())
+  return waitForHydrationOnGoto(
+    await browser.newPage({ viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: true }),
+  )
 }
 
 export const test = base.extend({

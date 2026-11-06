@@ -2,9 +2,7 @@
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 import { runMigrations, migrationsFolder } from './migrate.mjs'
-
-// Houd gelijk met de verplichte velden in src/lib/env.ts (die valideert ook het formaat).
-export const REQUIRED_ENV = ['DATABASE_URL', 'PUBLIC_BASE_URL', 'BETTER_AUTH_SECRET', 'ADMIN_EMAIL']
+import { parseEnv } from './env.mjs'
 
 export async function startServer({
   env = process.env,
@@ -15,12 +13,9 @@ export async function startServer({
         .href
     ),
 } = {}) {
-  const missing = REQUIRED_ENV.filter((name) => !env[name])
-  if (missing.length > 0) {
-    throw new Error(`Ontbrekende omgevingsvariabele(n): ${missing.join(', ')}`)
-  }
+  const config = parseEnv(env)
   try {
-    await runMigrations(env.DATABASE_URL, folder)
+    await runMigrations(config.DATABASE_URL, folder)
   } catch (error) {
     throw new Error(`Databasemigratie mislukt: ${error instanceof Error ? error.message : String(error)}`, {
       cause: error,

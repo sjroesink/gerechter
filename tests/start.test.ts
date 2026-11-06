@@ -48,4 +48,40 @@ describe('startServer', () => {
     )
     expect(importServer).not.toHaveBeenCalled()
   })
+
+  test.each([
+    ['DATABASE_URL', 'geen-url'],
+    ['PUBLIC_BASE_URL', 'geen-url'],
+    ['BETTER_AUTH_SECRET', 'te-kort'],
+    ['ADMIN_EMAIL', 'geen-mailadres'],
+    ['PORT', 'geen-poort'],
+    ['AH_SIDECAR_URL', 'ftp://localhost:3001'],
+  ])('weigert een ongeldige %s vóór migraties en vóór de server start', async (name, value) => {
+    const importServer = vi.fn(async () => ({}))
+    await expect(
+      startServer({
+        env: { ...baseEnv, [name]: value },
+        // Een onbereikbare migratiemap zou een andere fout geven als migraties al waren gestart.
+        folder: '/bestaat-niet',
+        importServer,
+      }),
+    ).rejects.toThrow(new RegExp(`Ongeldige configuratie:[\\s\\S]*${name}`))
+    expect(importServer).not.toHaveBeenCalled()
+  })
+
+  test('vereist het sidecargeheim bij een URL en accepteert het complete optionele paar', async () => {
+    const importServer = vi.fn(async () => ({}))
+    await expect(
+      startServer({ env: { ...baseEnv, AH_SIDECAR_SECRET: 's'.repeat(32) }, importServer }),
+    ).rejects.toThrow(/AH_SIDECAR_URL/)
+    await expect(
+      startServer({ env: { ...baseEnv, AH_SIDECAR_URL: 'http://localhost:3001' }, importServer }),
+    ).rejects.toThrow(/AH_SIDECAR_SECRET/)
+    expect(importServer).not.toHaveBeenCalled()
+    await startServer({
+      env: { ...baseEnv, AH_SIDECAR_URL: 'http://localhost:3001', AH_SIDECAR_SECRET: 's'.repeat(32) },
+      importServer,
+    })
+    expect(importServer).toHaveBeenCalledOnce()
+  })
 })

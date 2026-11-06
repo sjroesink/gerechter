@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { PlusIcon } from '~/components/icons'
+import { HouseholdPreferencesForm } from '~/components/household-preferences-form'
 import { ShareLink } from '~/components/share-link'
 import { Button, DetailHeader, Notice, Page, SectionTitle } from '~/components/ui'
 import {
@@ -46,7 +47,7 @@ function HouseholdPage() {
     )
   }
 
-  const { household, members, invites } = result.data
+  const { household, members, invites, preferences } = result.data
   const isOwner = household.role === 'owner'
 
   return (
@@ -54,6 +55,7 @@ function HouseholdPage() {
       <DetailHeader title={household.name} subtitle="Huishouden" back="/meer" backLabel="Terug naar Meer" />
       <Page>
         {error && <Notice tone="error">{error}</Notice>}
+        <HouseholdPreferencesForm defaultServings={preferences.defaultServings} />
 
         <section className="flex flex-col gap-2">
           <SectionTitle>Leden</SectionTitle>

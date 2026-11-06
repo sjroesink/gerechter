@@ -15,6 +15,69 @@
       "when": 1793865710994,
       "tag": "0001_auth_and_households",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793882880901,
+      "tag": "0002_curved_starjammers",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793884304883,
+      "tag": "0003_harsh_the_watchers",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793886103612,
+      "tag": "0004_deep_leopardon",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793886775958,
+      "tag": "0005_worried_payback",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793887527451,
+      "tag": "0006_complete_zarek",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793888745395,
+      "tag": "0007_nebulous_lightspeed",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793888906481,
+      "tag": "0008_legal_psylocke",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793908364381,
+      "tag": "0009_legal_madame_hydra",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793967225377,
+      "tag": "0010_furry_mach_iv",
+      "breakpoints": true
     }
   ]
 }

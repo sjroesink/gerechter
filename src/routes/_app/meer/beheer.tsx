@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState, type FormEvent } from 'react'
 import { ShareLink } from '~/components/share-link'
-import { Button, DetailHeader, Field, Notice, Page, SectionTitle } from '~/components/ui'
+import { Button, DetailHeader, Field, ListGroup, ListLink, Notice, Page, SectionTitle } from '~/components/ui'
 import { adminCreateHouseholdInvite, adminCreateResetLink, adminOverview } from '~/server/accounts.functions'
 
 export const Route = createFileRoute('/_app/meer/beheer')({
@@ -33,6 +33,13 @@ function AdminPage() {
       <DetailHeader title="Beheer" back="/meer" backLabel="Terug naar Meer" />
       <Page>
         {error && <Notice tone="error">{error}</Notice>}
+        <ListGroup label="Catalogusbeheer">
+          <ListLink
+            to="/meer/ingredienten"
+            title="Ingrediëntencatalogus"
+            detail="Globale ingrediënten en omrekeningen beheren"
+          />
+        </ListGroup>
 
         <section className="flex flex-col gap-2">
           <SectionTitle>Nieuw huishouden uitnodigen</SectionTitle>
@@ -51,7 +58,7 @@ function AdminPage() {
             <form
               method="post"
               onSubmit={inviteHousehold}
-              className="flex flex-col gap-3 rounded-2xl bg-surface p-4"
+              className="flex flex-col gap-3 rounded-[20px] bg-surface p-5"
             >
               <Field
                 label="Naam van het huishouden"

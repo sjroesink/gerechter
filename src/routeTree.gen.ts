@@ -17,17 +17,37 @@ import { Route as McpRouteImport } from './routes/mcp'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known.$'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as AppGerechtenRouteImport } from './routes/_app/gerechten'
-import { Route as AppVoorraadRouteImport } from './routes/_app/voorraad'
-import { Route as AppWeekRouteImport } from './routes/_app/week'
+import { Route as AfbeeldingenImageIdRouteImport } from './routes/afbeeldingen.$imageId'
 import { Route as HerstelTokenRouteImport } from './routes/herstel.$token'
 import { Route as UitnodigingTokenRouteImport } from './routes/uitnodiging.$token'
+import { Route as AppGerechtenIndexRouteImport } from './routes/_app/gerechten/index'
+import { Route as AppGerechtenNieuwRouteImport } from './routes/_app/gerechten/nieuw'
 import { Route as AppMeerIndexRouteImport } from './routes/_app/meer/index'
 import { Route as AppMeerAccountRouteImport } from './routes/_app/meer/account'
 import { Route as AppMeerBeheerRouteImport } from './routes/_app/meer/beheer'
 import { Route as AppMeerHuishoudenRouteImport } from './routes/_app/meer/huishouden'
 import { Route as AppMeerVerbondenAppsRouteImport } from './routes/_app/meer/verbonden-apps'
+import { Route as AppVoorraadIndexRouteImport } from './routes/_app/voorraad/index'
+import { Route as AppVoorraadIngredientIdRouteImport } from './routes/_app/voorraad/$ingredientId'
+import { Route as AppVoorraadNieuwRouteImport } from './routes/_app/voorraad/nieuw'
+import { Route as AppWeekIndexRouteImport } from './routes/_app/week/index'
+import { Route as AppWeekNieuwRouteImport } from './routes/_app/week/nieuw'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AppGerechtenRecipeIdIndexRouteImport } from './routes/_app/gerechten/$recipeId/index'
+import { Route as AppGerechtenRecipeIdBewerkenRouteImport } from './routes/_app/gerechten/$recipeId/bewerken'
+import { Route as AppGerechtenRecipeIdGemaaktRouteImport } from './routes/_app/gerechten/$recipeId/gemaakt'
+import { Route as AppMeerBoodschappenIndexRouteImport } from './routes/_app/meer/boodschappen/index'
+import { Route as AppMeerBoodschappenVerbindingenRouteImport } from './routes/_app/meer/boodschappen/verbindingen'
+import { Route as AppMeerGeschiedenisIndexRouteImport } from './routes/_app/meer/geschiedenis/index'
+import { Route as AppMeerGeschiedenisEventIdRouteImport } from './routes/_app/meer/geschiedenis/$eventId'
+import { Route as AppMeerIngredientenIndexRouteImport } from './routes/_app/meer/ingredienten/index'
+import { Route as AppMeerIngredientenIngredientIdRouteImport } from './routes/_app/meer/ingredienten/$ingredientId'
+import { Route as AppMeerIngredientenNieuwRouteImport } from './routes/_app/meer/ingredienten/nieuw'
+import { Route as AppWeekDagDateRouteImport } from './routes/_app/week/dag/$date'
+import { Route as AppMeerBoodschappenHistorieIndexRouteImport } from './routes/_app/meer/boodschappen/historie/index'
+import { Route as AppMeerBoodschappenHistorieRunIdRouteImport } from './routes/_app/meer/boodschappen/historie/$runId'
+import { Route as AppWeekMaaltijdMealIdIndexRouteImport } from './routes/_app/week/maaltijd/$mealId/index'
+import { Route as AppWeekMaaltijdMealIdBewerkenRouteImport } from './routes/_app/week/maaltijd/$mealId/bewerken'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -68,20 +88,10 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppGerechtenRoute = AppGerechtenRouteImport.update({
-  id: '/gerechten',
-  path: '/gerechten',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppVoorraadRoute = AppVoorraadRouteImport.update({
-  id: '/voorraad',
-  path: '/voorraad',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppWeekRoute = AppWeekRouteImport.update({
-  id: '/week',
-  path: '/week',
-  getParentRoute: () => AppRoute,
+const AfbeeldingenImageIdRoute = AfbeeldingenImageIdRouteImport.update({
+  id: '/afbeeldingen/$imageId',
+  path: '/afbeeldingen/$imageId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const HerstelTokenRoute = HerstelTokenRouteImport.update({
   id: '/herstel/$token',
@@ -92,6 +102,16 @@ const UitnodigingTokenRoute = UitnodigingTokenRouteImport.update({
   id: '/uitnodiging/$token',
   path: '/uitnodiging/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppGerechtenIndexRoute = AppGerechtenIndexRouteImport.update({
+  id: '/gerechten/',
+  path: '/gerechten/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGerechtenNieuwRoute = AppGerechtenNieuwRouteImport.update({
+  id: '/gerechten/nieuw',
+  path: '/gerechten/nieuw',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppMeerIndexRoute = AppMeerIndexRouteImport.update({
   id: '/meer/',
@@ -118,11 +138,125 @@ const AppMeerVerbondenAppsRoute = AppMeerVerbondenAppsRouteImport.update({
   path: '/meer/verbonden-apps',
   getParentRoute: () => AppRoute,
 } as any)
+const AppVoorraadIndexRoute = AppVoorraadIndexRouteImport.update({
+  id: '/voorraad/',
+  path: '/voorraad/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVoorraadIngredientIdRoute = AppVoorraadIngredientIdRouteImport.update({
+  id: '/voorraad/$ingredientId',
+  path: '/voorraad/$ingredientId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVoorraadNieuwRoute = AppVoorraadNieuwRouteImport.update({
+  id: '/voorraad/nieuw',
+  path: '/voorraad/nieuw',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWeekIndexRoute = AppWeekIndexRouteImport.update({
+  id: '/week/',
+  path: '/week/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWeekNieuwRoute = AppWeekNieuwRouteImport.update({
+  id: '/week/nieuw',
+  path: '/week/nieuw',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppGerechtenRecipeIdIndexRoute =
+  AppGerechtenRecipeIdIndexRouteImport.update({
+    id: '/gerechten/$recipeId/',
+    path: '/gerechten/$recipeId/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppGerechtenRecipeIdBewerkenRoute =
+  AppGerechtenRecipeIdBewerkenRouteImport.update({
+    id: '/gerechten/$recipeId/bewerken',
+    path: '/gerechten/$recipeId/bewerken',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppGerechtenRecipeIdGemaaktRoute =
+  AppGerechtenRecipeIdGemaaktRouteImport.update({
+    id: '/gerechten/$recipeId/gemaakt',
+    path: '/gerechten/$recipeId/gemaakt',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppMeerBoodschappenIndexRoute =
+  AppMeerBoodschappenIndexRouteImport.update({
+    id: '/meer/boodschappen/',
+    path: '/meer/boodschappen/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppMeerBoodschappenVerbindingenRoute =
+  AppMeerBoodschappenVerbindingenRouteImport.update({
+    id: '/meer/boodschappen/verbindingen',
+    path: '/meer/boodschappen/verbindingen',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppMeerGeschiedenisIndexRoute =
+  AppMeerGeschiedenisIndexRouteImport.update({
+    id: '/meer/geschiedenis/',
+    path: '/meer/geschiedenis/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppMeerGeschiedenisEventIdRoute =
+  AppMeerGeschiedenisEventIdRouteImport.update({
+    id: '/meer/geschiedenis/$eventId',
+    path: '/meer/geschiedenis/$eventId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppMeerIngredientenIndexRoute =
+  AppMeerIngredientenIndexRouteImport.update({
+    id: '/meer/ingredienten/',
+    path: '/meer/ingredienten/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppMeerIngredientenIngredientIdRoute =
+  AppMeerIngredientenIngredientIdRouteImport.update({
+    id: '/meer/ingredienten/$ingredientId',
+    path: '/meer/ingredienten/$ingredientId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppMeerIngredientenNieuwRoute =
+  AppMeerIngredientenNieuwRouteImport.update({
+    id: '/meer/ingredienten/nieuw',
+    path: '/meer/ingredienten/nieuw',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppWeekDagDateRoute = AppWeekDagDateRouteImport.update({
+  id: '/week/dag/$date',
+  path: '/week/dag/$date',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMeerBoodschappenHistorieIndexRoute =
+  AppMeerBoodschappenHistorieIndexRouteImport.update({
+    id: '/meer/boodschappen/historie/',
+    path: '/meer/boodschappen/historie/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppMeerBoodschappenHistorieRunIdRoute =
+  AppMeerBoodschappenHistorieRunIdRouteImport.update({
+    id: '/meer/boodschappen/historie/$runId',
+    path: '/meer/boodschappen/historie/$runId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppWeekMaaltijdMealIdIndexRoute =
+  AppWeekMaaltijdMealIdIndexRouteImport.update({
+    id: '/week/maaltijd/$mealId/',
+    path: '/week/maaltijd/$mealId/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppWeekMaaltijdMealIdBewerkenRoute =
+  AppWeekMaaltijdMealIdBewerkenRouteImport.update({
+    id: '/week/maaltijd/$mealId/bewerken',
+    path: '/week/maaltijd/$mealId/bewerken',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -132,17 +266,37 @@ export interface FileRoutesByFullPath {
   '/mcp': typeof McpRoute
   '/setup': typeof SetupRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
-  '/gerechten': typeof AppGerechtenRoute
-  '/voorraad': typeof AppVoorraadRoute
-  '/week': typeof AppWeekRoute
+  '/afbeeldingen/$imageId': typeof AfbeeldingenImageIdRoute
   '/herstel/$token': typeof HerstelTokenRoute
   '/uitnodiging/$token': typeof UitnodigingTokenRoute
+  '/gerechten/nieuw': typeof AppGerechtenNieuwRoute
   '/meer/account': typeof AppMeerAccountRoute
   '/meer/beheer': typeof AppMeerBeheerRoute
   '/meer/huishouden': typeof AppMeerHuishoudenRoute
   '/meer/verbonden-apps': typeof AppMeerVerbondenAppsRoute
+  '/voorraad/$ingredientId': typeof AppVoorraadIngredientIdRoute
+  '/voorraad/nieuw': typeof AppVoorraadNieuwRoute
+  '/week/nieuw': typeof AppWeekNieuwRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/gerechten/': typeof AppGerechtenIndexRoute
   '/meer/': typeof AppMeerIndexRoute
+  '/voorraad/': typeof AppVoorraadIndexRoute
+  '/week/': typeof AppWeekIndexRoute
+  '/gerechten/$recipeId/bewerken': typeof AppGerechtenRecipeIdBewerkenRoute
+  '/gerechten/$recipeId/gemaakt': typeof AppGerechtenRecipeIdGemaaktRoute
+  '/meer/boodschappen/verbindingen': typeof AppMeerBoodschappenVerbindingenRoute
+  '/meer/geschiedenis/$eventId': typeof AppMeerGeschiedenisEventIdRoute
+  '/meer/ingredienten/$ingredientId': typeof AppMeerIngredientenIngredientIdRoute
+  '/meer/ingredienten/nieuw': typeof AppMeerIngredientenNieuwRoute
+  '/week/dag/$date': typeof AppWeekDagDateRoute
+  '/gerechten/$recipeId/': typeof AppGerechtenRecipeIdIndexRoute
+  '/meer/boodschappen/': typeof AppMeerBoodschappenIndexRoute
+  '/meer/geschiedenis/': typeof AppMeerGeschiedenisIndexRoute
+  '/meer/ingredienten/': typeof AppMeerIngredientenIndexRoute
+  '/meer/boodschappen/historie/$runId': typeof AppMeerBoodschappenHistorieRunIdRoute
+  '/week/maaltijd/$mealId/bewerken': typeof AppWeekMaaltijdMealIdBewerkenRoute
+  '/meer/boodschappen/historie/': typeof AppMeerBoodschappenHistorieIndexRoute
+  '/week/maaltijd/$mealId/': typeof AppWeekMaaltijdMealIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/consent': typeof ConsentRoute
@@ -151,18 +305,38 @@ export interface FileRoutesByTo {
   '/mcp': typeof McpRoute
   '/setup': typeof SetupRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
-  '/gerechten': typeof AppGerechtenRoute
-  '/voorraad': typeof AppVoorraadRoute
-  '/week': typeof AppWeekRoute
+  '/afbeeldingen/$imageId': typeof AfbeeldingenImageIdRoute
   '/herstel/$token': typeof HerstelTokenRoute
   '/uitnodiging/$token': typeof UitnodigingTokenRoute
   '/': typeof AppIndexRoute
+  '/gerechten/nieuw': typeof AppGerechtenNieuwRoute
   '/meer/account': typeof AppMeerAccountRoute
   '/meer/beheer': typeof AppMeerBeheerRoute
   '/meer/huishouden': typeof AppMeerHuishoudenRoute
   '/meer/verbonden-apps': typeof AppMeerVerbondenAppsRoute
+  '/voorraad/$ingredientId': typeof AppVoorraadIngredientIdRoute
+  '/voorraad/nieuw': typeof AppVoorraadNieuwRoute
+  '/week/nieuw': typeof AppWeekNieuwRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/gerechten': typeof AppGerechtenIndexRoute
   '/meer': typeof AppMeerIndexRoute
+  '/voorraad': typeof AppVoorraadIndexRoute
+  '/week': typeof AppWeekIndexRoute
+  '/gerechten/$recipeId/bewerken': typeof AppGerechtenRecipeIdBewerkenRoute
+  '/gerechten/$recipeId/gemaakt': typeof AppGerechtenRecipeIdGemaaktRoute
+  '/meer/boodschappen/verbindingen': typeof AppMeerBoodschappenVerbindingenRoute
+  '/meer/geschiedenis/$eventId': typeof AppMeerGeschiedenisEventIdRoute
+  '/meer/ingredienten/$ingredientId': typeof AppMeerIngredientenIngredientIdRoute
+  '/meer/ingredienten/nieuw': typeof AppMeerIngredientenNieuwRoute
+  '/week/dag/$date': typeof AppWeekDagDateRoute
+  '/gerechten/$recipeId': typeof AppGerechtenRecipeIdIndexRoute
+  '/meer/boodschappen': typeof AppMeerBoodschappenIndexRoute
+  '/meer/geschiedenis': typeof AppMeerGeschiedenisIndexRoute
+  '/meer/ingredienten': typeof AppMeerIngredientenIndexRoute
+  '/meer/boodschappen/historie/$runId': typeof AppMeerBoodschappenHistorieRunIdRoute
+  '/week/maaltijd/$mealId/bewerken': typeof AppWeekMaaltijdMealIdBewerkenRoute
+  '/meer/boodschappen/historie': typeof AppMeerBoodschappenHistorieIndexRoute
+  '/week/maaltijd/$mealId': typeof AppWeekMaaltijdMealIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -173,18 +347,38 @@ export interface FileRoutesById {
   '/mcp': typeof McpRoute
   '/setup': typeof SetupRoute
   '/.well-known/$': typeof DotwellKnownSplatRoute
-  '/_app/gerechten': typeof AppGerechtenRoute
-  '/_app/voorraad': typeof AppVoorraadRoute
-  '/_app/week': typeof AppWeekRoute
+  '/afbeeldingen/$imageId': typeof AfbeeldingenImageIdRoute
   '/herstel/$token': typeof HerstelTokenRoute
   '/uitnodiging/$token': typeof UitnodigingTokenRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/gerechten/nieuw': typeof AppGerechtenNieuwRoute
   '/_app/meer/account': typeof AppMeerAccountRoute
   '/_app/meer/beheer': typeof AppMeerBeheerRoute
   '/_app/meer/huishouden': typeof AppMeerHuishoudenRoute
   '/_app/meer/verbonden-apps': typeof AppMeerVerbondenAppsRoute
+  '/_app/voorraad/$ingredientId': typeof AppVoorraadIngredientIdRoute
+  '/_app/voorraad/nieuw': typeof AppVoorraadNieuwRoute
+  '/_app/week/nieuw': typeof AppWeekNieuwRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_app/gerechten/': typeof AppGerechtenIndexRoute
   '/_app/meer/': typeof AppMeerIndexRoute
+  '/_app/voorraad/': typeof AppVoorraadIndexRoute
+  '/_app/week/': typeof AppWeekIndexRoute
+  '/_app/gerechten/$recipeId/bewerken': typeof AppGerechtenRecipeIdBewerkenRoute
+  '/_app/gerechten/$recipeId/gemaakt': typeof AppGerechtenRecipeIdGemaaktRoute
+  '/_app/meer/boodschappen/verbindingen': typeof AppMeerBoodschappenVerbindingenRoute
+  '/_app/meer/geschiedenis/$eventId': typeof AppMeerGeschiedenisEventIdRoute
+  '/_app/meer/ingredienten/$ingredientId': typeof AppMeerIngredientenIngredientIdRoute
+  '/_app/meer/ingredienten/nieuw': typeof AppMeerIngredientenNieuwRoute
+  '/_app/week/dag/$date': typeof AppWeekDagDateRoute
+  '/_app/gerechten/$recipeId/': typeof AppGerechtenRecipeIdIndexRoute
+  '/_app/meer/boodschappen/': typeof AppMeerBoodschappenIndexRoute
+  '/_app/meer/geschiedenis/': typeof AppMeerGeschiedenisIndexRoute
+  '/_app/meer/ingredienten/': typeof AppMeerIngredientenIndexRoute
+  '/_app/meer/boodschappen/historie/$runId': typeof AppMeerBoodschappenHistorieRunIdRoute
+  '/_app/week/maaltijd/$mealId/bewerken': typeof AppWeekMaaltijdMealIdBewerkenRoute
+  '/_app/meer/boodschappen/historie/': typeof AppMeerBoodschappenHistorieIndexRoute
+  '/_app/week/maaltijd/$mealId/': typeof AppWeekMaaltijdMealIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -196,17 +390,37 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/setup'
     | '/.well-known/$'
-    | '/gerechten'
-    | '/voorraad'
-    | '/week'
+    | '/afbeeldingen/$imageId'
     | '/herstel/$token'
     | '/uitnodiging/$token'
+    | '/gerechten/nieuw'
     | '/meer/account'
     | '/meer/beheer'
     | '/meer/huishouden'
     | '/meer/verbonden-apps'
+    | '/voorraad/$ingredientId'
+    | '/voorraad/nieuw'
+    | '/week/nieuw'
     | '/api/auth/$'
+    | '/gerechten/'
     | '/meer/'
+    | '/voorraad/'
+    | '/week/'
+    | '/gerechten/$recipeId/bewerken'
+    | '/gerechten/$recipeId/gemaakt'
+    | '/meer/boodschappen/verbindingen'
+    | '/meer/geschiedenis/$eventId'
+    | '/meer/ingredienten/$ingredientId'
+    | '/meer/ingredienten/nieuw'
+    | '/week/dag/$date'
+    | '/gerechten/$recipeId/'
+    | '/meer/boodschappen/'
+    | '/meer/geschiedenis/'
+    | '/meer/ingredienten/'
+    | '/meer/boodschappen/historie/$runId'
+    | '/week/maaltijd/$mealId/bewerken'
+    | '/meer/boodschappen/historie/'
+    | '/week/maaltijd/$mealId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/consent'
@@ -215,18 +429,38 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/setup'
     | '/.well-known/$'
-    | '/gerechten'
-    | '/voorraad'
-    | '/week'
+    | '/afbeeldingen/$imageId'
     | '/herstel/$token'
     | '/uitnodiging/$token'
     | '/'
+    | '/gerechten/nieuw'
     | '/meer/account'
     | '/meer/beheer'
     | '/meer/huishouden'
     | '/meer/verbonden-apps'
+    | '/voorraad/$ingredientId'
+    | '/voorraad/nieuw'
+    | '/week/nieuw'
     | '/api/auth/$'
+    | '/gerechten'
     | '/meer'
+    | '/voorraad'
+    | '/week'
+    | '/gerechten/$recipeId/bewerken'
+    | '/gerechten/$recipeId/gemaakt'
+    | '/meer/boodschappen/verbindingen'
+    | '/meer/geschiedenis/$eventId'
+    | '/meer/ingredienten/$ingredientId'
+    | '/meer/ingredienten/nieuw'
+    | '/week/dag/$date'
+    | '/gerechten/$recipeId'
+    | '/meer/boodschappen'
+    | '/meer/geschiedenis'
+    | '/meer/ingredienten'
+    | '/meer/boodschappen/historie/$runId'
+    | '/week/maaltijd/$mealId/bewerken'
+    | '/meer/boodschappen/historie'
+    | '/week/maaltijd/$mealId'
   id:
     | '__root__'
     | '/_app'
@@ -236,18 +470,38 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/setup'
     | '/.well-known/$'
-    | '/_app/gerechten'
-    | '/_app/voorraad'
-    | '/_app/week'
+    | '/afbeeldingen/$imageId'
     | '/herstel/$token'
     | '/uitnodiging/$token'
     | '/_app/'
+    | '/_app/gerechten/nieuw'
     | '/_app/meer/account'
     | '/_app/meer/beheer'
     | '/_app/meer/huishouden'
     | '/_app/meer/verbonden-apps'
+    | '/_app/voorraad/$ingredientId'
+    | '/_app/voorraad/nieuw'
+    | '/_app/week/nieuw'
     | '/api/auth/$'
+    | '/_app/gerechten/'
     | '/_app/meer/'
+    | '/_app/voorraad/'
+    | '/_app/week/'
+    | '/_app/gerechten/$recipeId/bewerken'
+    | '/_app/gerechten/$recipeId/gemaakt'
+    | '/_app/meer/boodschappen/verbindingen'
+    | '/_app/meer/geschiedenis/$eventId'
+    | '/_app/meer/ingredienten/$ingredientId'
+    | '/_app/meer/ingredienten/nieuw'
+    | '/_app/week/dag/$date'
+    | '/_app/gerechten/$recipeId/'
+    | '/_app/meer/boodschappen/'
+    | '/_app/meer/geschiedenis/'
+    | '/_app/meer/ingredienten/'
+    | '/_app/meer/boodschappen/historie/$runId'
+    | '/_app/week/maaltijd/$mealId/bewerken'
+    | '/_app/meer/boodschappen/historie/'
+    | '/_app/week/maaltijd/$mealId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -258,6 +512,7 @@ export interface RootRouteChildren {
   McpRoute: typeof McpRoute
   SetupRoute: typeof SetupRoute
   DotwellKnownSplatRoute: typeof DotwellKnownSplatRoute
+  AfbeeldingenImageIdRoute: typeof AfbeeldingenImageIdRoute
   HerstelTokenRoute: typeof HerstelTokenRoute
   UitnodigingTokenRoute: typeof UitnodigingTokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -321,26 +576,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/gerechten': {
-      id: '/_app/gerechten'
-      path: '/gerechten'
-      fullPath: '/gerechten'
-      preLoaderRoute: typeof AppGerechtenRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/voorraad': {
-      id: '/_app/voorraad'
-      path: '/voorraad'
-      fullPath: '/voorraad'
-      preLoaderRoute: typeof AppVoorraadRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/week': {
-      id: '/_app/week'
-      path: '/week'
-      fullPath: '/week'
-      preLoaderRoute: typeof AppWeekRouteImport
-      parentRoute: typeof AppRoute
+    '/afbeeldingen/$imageId': {
+      id: '/afbeeldingen/$imageId'
+      path: '/afbeeldingen/$imageId'
+      fullPath: '/afbeeldingen/$imageId'
+      preLoaderRoute: typeof AfbeeldingenImageIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/herstel/$token': {
       id: '/herstel/$token'
@@ -355,6 +596,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/uitnodiging/$token'
       preLoaderRoute: typeof UitnodigingTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/gerechten/': {
+      id: '/_app/gerechten/'
+      path: '/gerechten'
+      fullPath: '/gerechten/'
+      preLoaderRoute: typeof AppGerechtenIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/gerechten/nieuw': {
+      id: '/_app/gerechten/nieuw'
+      path: '/gerechten/nieuw'
+      fullPath: '/gerechten/nieuw'
+      preLoaderRoute: typeof AppGerechtenNieuwRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/meer/': {
       id: '/_app/meer/'
@@ -391,6 +646,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMeerVerbondenAppsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/voorraad/': {
+      id: '/_app/voorraad/'
+      path: '/voorraad'
+      fullPath: '/voorraad/'
+      preLoaderRoute: typeof AppVoorraadIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/voorraad/$ingredientId': {
+      id: '/_app/voorraad/$ingredientId'
+      path: '/voorraad/$ingredientId'
+      fullPath: '/voorraad/$ingredientId'
+      preLoaderRoute: typeof AppVoorraadIngredientIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/voorraad/nieuw': {
+      id: '/_app/voorraad/nieuw'
+      path: '/voorraad/nieuw'
+      fullPath: '/voorraad/nieuw'
+      preLoaderRoute: typeof AppVoorraadNieuwRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/week/': {
+      id: '/_app/week/'
+      path: '/week'
+      fullPath: '/week/'
+      preLoaderRoute: typeof AppWeekIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/week/nieuw': {
+      id: '/_app/week/nieuw'
+      path: '/week/nieuw'
+      fullPath: '/week/nieuw'
+      preLoaderRoute: typeof AppWeekNieuwRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -398,31 +688,174 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/gerechten/$recipeId/': {
+      id: '/_app/gerechten/$recipeId/'
+      path: '/gerechten/$recipeId'
+      fullPath: '/gerechten/$recipeId/'
+      preLoaderRoute: typeof AppGerechtenRecipeIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/gerechten/$recipeId/bewerken': {
+      id: '/_app/gerechten/$recipeId/bewerken'
+      path: '/gerechten/$recipeId/bewerken'
+      fullPath: '/gerechten/$recipeId/bewerken'
+      preLoaderRoute: typeof AppGerechtenRecipeIdBewerkenRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/gerechten/$recipeId/gemaakt': {
+      id: '/_app/gerechten/$recipeId/gemaakt'
+      path: '/gerechten/$recipeId/gemaakt'
+      fullPath: '/gerechten/$recipeId/gemaakt'
+      preLoaderRoute: typeof AppGerechtenRecipeIdGemaaktRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meer/boodschappen/': {
+      id: '/_app/meer/boodschappen/'
+      path: '/meer/boodschappen'
+      fullPath: '/meer/boodschappen/'
+      preLoaderRoute: typeof AppMeerBoodschappenIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meer/boodschappen/verbindingen': {
+      id: '/_app/meer/boodschappen/verbindingen'
+      path: '/meer/boodschappen/verbindingen'
+      fullPath: '/meer/boodschappen/verbindingen'
+      preLoaderRoute: typeof AppMeerBoodschappenVerbindingenRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meer/geschiedenis/': {
+      id: '/_app/meer/geschiedenis/'
+      path: '/meer/geschiedenis'
+      fullPath: '/meer/geschiedenis/'
+      preLoaderRoute: typeof AppMeerGeschiedenisIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meer/geschiedenis/$eventId': {
+      id: '/_app/meer/geschiedenis/$eventId'
+      path: '/meer/geschiedenis/$eventId'
+      fullPath: '/meer/geschiedenis/$eventId'
+      preLoaderRoute: typeof AppMeerGeschiedenisEventIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meer/ingredienten/': {
+      id: '/_app/meer/ingredienten/'
+      path: '/meer/ingredienten'
+      fullPath: '/meer/ingredienten/'
+      preLoaderRoute: typeof AppMeerIngredientenIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meer/ingredienten/$ingredientId': {
+      id: '/_app/meer/ingredienten/$ingredientId'
+      path: '/meer/ingredienten/$ingredientId'
+      fullPath: '/meer/ingredienten/$ingredientId'
+      preLoaderRoute: typeof AppMeerIngredientenIngredientIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meer/ingredienten/nieuw': {
+      id: '/_app/meer/ingredienten/nieuw'
+      path: '/meer/ingredienten/nieuw'
+      fullPath: '/meer/ingredienten/nieuw'
+      preLoaderRoute: typeof AppMeerIngredientenNieuwRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/week/dag/$date': {
+      id: '/_app/week/dag/$date'
+      path: '/week/dag/$date'
+      fullPath: '/week/dag/$date'
+      preLoaderRoute: typeof AppWeekDagDateRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meer/boodschappen/historie/': {
+      id: '/_app/meer/boodschappen/historie/'
+      path: '/meer/boodschappen/historie'
+      fullPath: '/meer/boodschappen/historie/'
+      preLoaderRoute: typeof AppMeerBoodschappenHistorieIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meer/boodschappen/historie/$runId': {
+      id: '/_app/meer/boodschappen/historie/$runId'
+      path: '/meer/boodschappen/historie/$runId'
+      fullPath: '/meer/boodschappen/historie/$runId'
+      preLoaderRoute: typeof AppMeerBoodschappenHistorieRunIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/week/maaltijd/$mealId/': {
+      id: '/_app/week/maaltijd/$mealId/'
+      path: '/week/maaltijd/$mealId'
+      fullPath: '/week/maaltijd/$mealId/'
+      preLoaderRoute: typeof AppWeekMaaltijdMealIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/week/maaltijd/$mealId/bewerken': {
+      id: '/_app/week/maaltijd/$mealId/bewerken'
+      path: '/week/maaltijd/$mealId/bewerken'
+      fullPath: '/week/maaltijd/$mealId/bewerken'
+      preLoaderRoute: typeof AppWeekMaaltijdMealIdBewerkenRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
-  AppGerechtenRoute: typeof AppGerechtenRoute
-  AppVoorraadRoute: typeof AppVoorraadRoute
-  AppWeekRoute: typeof AppWeekRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppGerechtenNieuwRoute: typeof AppGerechtenNieuwRoute
   AppMeerAccountRoute: typeof AppMeerAccountRoute
   AppMeerBeheerRoute: typeof AppMeerBeheerRoute
   AppMeerHuishoudenRoute: typeof AppMeerHuishoudenRoute
   AppMeerVerbondenAppsRoute: typeof AppMeerVerbondenAppsRoute
+  AppVoorraadIngredientIdRoute: typeof AppVoorraadIngredientIdRoute
+  AppVoorraadNieuwRoute: typeof AppVoorraadNieuwRoute
+  AppWeekNieuwRoute: typeof AppWeekNieuwRoute
+  AppGerechtenIndexRoute: typeof AppGerechtenIndexRoute
   AppMeerIndexRoute: typeof AppMeerIndexRoute
+  AppVoorraadIndexRoute: typeof AppVoorraadIndexRoute
+  AppWeekIndexRoute: typeof AppWeekIndexRoute
+  AppGerechtenRecipeIdBewerkenRoute: typeof AppGerechtenRecipeIdBewerkenRoute
+  AppGerechtenRecipeIdGemaaktRoute: typeof AppGerechtenRecipeIdGemaaktRoute
+  AppMeerBoodschappenVerbindingenRoute: typeof AppMeerBoodschappenVerbindingenRoute
+  AppMeerGeschiedenisEventIdRoute: typeof AppMeerGeschiedenisEventIdRoute
+  AppMeerIngredientenIngredientIdRoute: typeof AppMeerIngredientenIngredientIdRoute
+  AppMeerIngredientenNieuwRoute: typeof AppMeerIngredientenNieuwRoute
+  AppWeekDagDateRoute: typeof AppWeekDagDateRoute
+  AppGerechtenRecipeIdIndexRoute: typeof AppGerechtenRecipeIdIndexRoute
+  AppMeerBoodschappenIndexRoute: typeof AppMeerBoodschappenIndexRoute
+  AppMeerGeschiedenisIndexRoute: typeof AppMeerGeschiedenisIndexRoute
+  AppMeerIngredientenIndexRoute: typeof AppMeerIngredientenIndexRoute
+  AppMeerBoodschappenHistorieRunIdRoute: typeof AppMeerBoodschappenHistorieRunIdRoute
+  AppWeekMaaltijdMealIdBewerkenRoute: typeof AppWeekMaaltijdMealIdBewerkenRoute
+  AppMeerBoodschappenHistorieIndexRoute: typeof AppMeerBoodschappenHistorieIndexRoute
+  AppWeekMaaltijdMealIdIndexRoute: typeof AppWeekMaaltijdMealIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppGerechtenRoute: AppGerechtenRoute,
-  AppVoorraadRoute: AppVoorraadRoute,
-  AppWeekRoute: AppWeekRoute,
   AppIndexRoute: AppIndexRoute,
+  AppGerechtenNieuwRoute: AppGerechtenNieuwRoute,
   AppMeerAccountRoute: AppMeerAccountRoute,
   AppMeerBeheerRoute: AppMeerBeheerRoute,
   AppMeerHuishoudenRoute: AppMeerHuishoudenRoute,
   AppMeerVerbondenAppsRoute: AppMeerVerbondenAppsRoute,
+  AppVoorraadIngredientIdRoute: AppVoorraadIngredientIdRoute,
+  AppVoorraadNieuwRoute: AppVoorraadNieuwRoute,
+  AppWeekNieuwRoute: AppWeekNieuwRoute,
+  AppGerechtenIndexRoute: AppGerechtenIndexRoute,
   AppMeerIndexRoute: AppMeerIndexRoute,
+  AppVoorraadIndexRoute: AppVoorraadIndexRoute,
+  AppWeekIndexRoute: AppWeekIndexRoute,
+  AppGerechtenRecipeIdBewerkenRoute: AppGerechtenRecipeIdBewerkenRoute,
+  AppGerechtenRecipeIdGemaaktRoute: AppGerechtenRecipeIdGemaaktRoute,
+  AppMeerBoodschappenVerbindingenRoute: AppMeerBoodschappenVerbindingenRoute,
+  AppMeerGeschiedenisEventIdRoute: AppMeerGeschiedenisEventIdRoute,
+  AppMeerIngredientenIngredientIdRoute: AppMeerIngredientenIngredientIdRoute,
+  AppMeerIngredientenNieuwRoute: AppMeerIngredientenNieuwRoute,
+  AppWeekDagDateRoute: AppWeekDagDateRoute,
+  AppGerechtenRecipeIdIndexRoute: AppGerechtenRecipeIdIndexRoute,
+  AppMeerBoodschappenIndexRoute: AppMeerBoodschappenIndexRoute,
+  AppMeerGeschiedenisIndexRoute: AppMeerGeschiedenisIndexRoute,
+  AppMeerIngredientenIndexRoute: AppMeerIngredientenIndexRoute,
+  AppMeerBoodschappenHistorieRunIdRoute: AppMeerBoodschappenHistorieRunIdRoute,
+  AppWeekMaaltijdMealIdBewerkenRoute: AppWeekMaaltijdMealIdBewerkenRoute,
+  AppMeerBoodschappenHistorieIndexRoute: AppMeerBoodschappenHistorieIndexRoute,
+  AppWeekMaaltijdMealIdIndexRoute: AppWeekMaaltijdMealIdIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -435,6 +868,7 @@ const rootRouteChildren: RootRouteChildren = {
   McpRoute: McpRoute,
   SetupRoute: SetupRoute,
   DotwellKnownSplatRoute: DotwellKnownSplatRoute,
+  AfbeeldingenImageIdRoute: AfbeeldingenImageIdRoute,
   HerstelTokenRoute: HerstelTokenRoute,
   UitnodigingTokenRoute: UitnodigingTokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
