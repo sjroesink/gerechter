@@ -145,6 +145,9 @@ class Backend:
                 return httpx.Response(400, json={"detail": "Invalid shopping-list payload"})
             description = item["description"]
             failure = self.failures.get(description)
+            if failure == "once-503":
+                del self.failures[description]
+                return httpx.Response(503, json={"detail": "private-token response body"})
             if failure == "reject":
                 return httpx.Response(400, json={"detail": "private-token response body"})
             if failure and failure.startswith("reject-"):
@@ -235,6 +238,8 @@ async def system(tmp_path: Path):
     backend = Backend()
     settings = Settings(SECRET, tmp_path / "appie.sqlite")
     app = create_app(settings, backend.transport)
+    app.state.jobs.retry_delays = (0.0, 0.0)
+    app.state.jobs.write_pause = 0.0
     async with (
         app.router.lifespan_context(app),
         httpx.AsyncClient(

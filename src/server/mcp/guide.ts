@@ -88,7 +88,7 @@ export const agentGuide = {
     share:
       'Een share-run zet tekst alleen klaar. confirm_shopping_share mag uitsluitend na werkelijk kopiëren, afronden van een deelmenu of annuleren. Gekopieerd en Deelmenu afgerond bewijzen geen ontvangst bij een ander.',
     providers:
-      'Een eigenaar stelt Notion en AH in de webapp in. Vraag geen tokens, sleutels of AH-wachtwoord via MCP. AH is experimenteel en schrijft alleen naar de AH-boodschappenlijst, nooit naar winkelmandje of bestelling. Ontbrekende verbindingen zijn geen geslaagde live providercontrole.',
+      'Een eigenaar stelt Notion en AH in de webapp in. Vraag geen tokens, sleutels of AH-wachtwoord via MCP. AH schrijft alleen naar de AH-boodschappenlijst, nooit naar winkelmandje of bestelling. Ontbrekende verbindingen zijn geen geslaagde live providercontrole.',
     ahProducts:
       'Een ingrediënt kan per huishouden aan één AH-product gekoppeld zijn. Zoek met search_ah_products (met ingredientId) en koppel met link_ingredient_ah_product alleen een product dat bij het ingrediënt en de wens van de gebruiker past; raad geen verpakkingsinhoud (packAmount null als suggestedPackAmount ontbreekt of twijfelachtig is). prepare_shopping toont per item ahProduct (aantal verpakkingen, check = aantal controleren) en ahItems; een AH-export kijkt eerst wat al op de lijst staat: een gekoppeld product dat al in minstens dat aantal op de lijst staat en tekstregels die er al staan worden overgeslagen; een te laag aantal wordt opgehoogd en de rest toegevoegd.',
   },

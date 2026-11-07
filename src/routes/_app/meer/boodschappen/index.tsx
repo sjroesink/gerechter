@@ -7,7 +7,6 @@ import { ShoppingSourceForm, type ShoppingSearch } from '~/components/shopping-s
 import { shoppingStatusLabels, shoppingTargetLabels } from '~/components/shopping-labels'
 import {
   ActionBar,
-  Badge,
   Button,
   DetailHeader,
   ListGroup,
@@ -66,7 +65,13 @@ function ShoppingPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [repeat, setRepeat] = useState(false)
-  const [target, setTarget] = useState<Target>('share')
+  // With exactly one connected list (Notion or AH) that list is the obvious choice.
+  const [target, setTarget] = useState<Target>(() => {
+    const connected = result.ok
+      ? result.data.targets.filter((option) => option.target !== 'share' && option.configured)
+      : []
+    return connected.length === 1 ? connected[0]!.target : 'share'
+  })
   if (!result.ok)
     return (
       <>
@@ -211,7 +216,6 @@ function ShoppingPage() {
                           {option.configured ? targetDetails[option.target] : 'Nog niet gekoppeld'}
                         </span>
                       </span>
-                      {option.target === 'ah' && <Badge tone="amber">experimenteel</Badge>}
                     </button>
                   ))}
                 </div>

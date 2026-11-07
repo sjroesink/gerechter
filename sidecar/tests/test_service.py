@@ -113,17 +113,28 @@ async def test_duplicate_input_lines_preserve_multiplicity_and_existing_text_is_
     assert system.backend.items[cid][" 100 G   TOMATEN "] == 3
 
 
-async def test_write_saved_by_ah_without_response_is_recovered_read_only(system: System):
+async def test_write_saved_by_ah_without_response_is_recognised_on_reread(system: System):
     connection = await system.connect()
     system.backend.failures["300 g Tomaten"] = "timeout-after"
-    eid, _ = await system.start(connection, ["300 g Tomaten"])
-    assert (await system.finished(connection, eid))["status"] == "uncertain"
-    await system.start(connection, ["300 g Tomaten"], eid)
-    assert len(system.backend.writes()) == 1
-    checked = await system.status(connection, eid, check=True)
-    assert checked.json()["status"] == "succeeded" and checked.json()["completed"] == 1
-    assert len(system.backend.writes()) == 1
-    assert "private-token" not in checked.text
+    eid, _ = await system.start(connection, ["300 g Tomaten", "1 Ui"])
+    result = await system.finished(connection, eid)
+    assert result["status"] == "succeeded" and result["completed"] == 2
+    descriptions = [call["body"]["items"][0]["description"] for call in system.backend.writes()]
+    assert descriptions == ["300 g Tomaten", "1 Ui"]
+    await system.start(connection, ["300 g Tomaten", "1 Ui"], eid)
+    assert len(system.backend.writes()) == 2
+    assert "private-token" not in json.dumps(result)
+
+
+async def test_transient_failure_is_retried_after_rereading_the_list(system: System):
+    connection = await system.connect()
+    system.backend.failures["1 Ui"] = "once-503"
+    eid, _ = await system.start(connection, ["1 Ui", "2 Eieren"])
+    result = await system.finished(connection, eid)
+    assert result["status"] == "succeeded" and result["completed"] == 2
+    descriptions = [call["body"]["items"][0]["description"] for call in system.backend.writes()]
+    assert descriptions == ["1 Ui", "1 Ui", "2 Eieren"]
+    assert system.backend.items[connection["connection_id"]] == {"1 Ui": 1, "2 Eieren": 1}
 
 
 async def test_partial_result_stops_writes_and_only_deliberate_new_export_adds_missing_lines(
@@ -134,10 +145,10 @@ async def test_partial_result_stops_writes_and_only_deliberate_new_export_adds_m
     eid, _ = await system.start(connection, ["300 g Tomaten", "1 Ui", "2 Eieren"])
     result = await system.finished(connection, eid)
     assert result["status"] == "uncertain" and result["completed"] == 1
-    assert len(system.backend.writes()) == 2
+    assert len(system.backend.writes()) == 4
     checked = await system.status(connection, eid, check=True)
     assert checked.json()["verified_absent"] is True
-    assert len(system.backend.writes()) == 2
+    assert len(system.backend.writes()) == 4
     system.backend.failures.clear()
     next_id, _ = await system.start(connection, ["300 g Tomaten", "1 Ui", "2 Eieren"])
     assert (await system.finished(connection, next_id))["completed"] == 3
@@ -145,22 +156,30 @@ async def test_partial_result_stops_writes_and_only_deliberate_new_export_adds_m
     assert descriptions.count("300 g Tomaten") == 1
 
 
-async def test_definitive_rejection_or_failed_initial_read_do_not_continue(system: System):
+async def test_rejected_line_is_skipped_and_a_failed_initial_read_does_not_continue(
+    system: System,
+):
     connection = await system.connect()
     system.backend.failures["1 Ui"] = "reject"
     eid, _ = await system.start(connection, ["1 Ui", "2 Eieren"])
     result = await system.finished(connection, eid)
-    assert result["status"] == "failed"
-    assert "HTTP 400" in result["message"] and "toevoegen" in result["message"]
-    assert len(system.backend.writes()) == 1
+    assert result["status"] == "uncertain" and result["completed"] == 1
+    assert result["message"] == ("AH weigerde 1 regel: 1 Ui. Voeg die zelf toe in de AH-app.")
+    assert len(system.backend.writes()) == 2
     assert "private-token" not in json.dumps(result)
+    system.backend.failures["Zout"] = "reject-422"
+    only, _ = await system.start(connection, ["1 Ui", "Zout"])
+    rejected = await system.finished(connection, only)
+    assert rejected["status"] == "failed" and rejected["completed"] == 0
+    assert "AH weigerde 2 regels: 1 Ui; Zout." in rejected["message"]
+    assert len(system.backend.writes()) == 4
     system.backend.fail_reads = True
     next_id, _ = await system.start(connection, ["Nieuw"])
     read_result = await system.finished(connection, next_id)
     assert read_result["status"] == "failed"
     assert "HTTP 403" in read_result["message"] and "lezen" in read_result["message"]
     assert "private server detail" not in json.dumps(read_result)
-    assert len(system.backend.writes()) == 1
+    assert len(system.backend.writes()) == 4
 
 
 async def test_text_payload_preserves_full_description_without_inventing_product(system: System):
@@ -186,11 +205,17 @@ async def test_text_payload_preserves_full_description_without_inventing_product
 
 
 @pytest.mark.parametrize(
-    ("status", "expected"),
-    [(401, "failed"), (403, "failed"), (408, "uncertain"), (429, "failed"), (500, "uncertain")],
+    ("status", "expected", "writes"),
+    [
+        (401, "failed", 1),
+        (403, "failed", 1),
+        (408, "uncertain", 3),
+        (429, "failed", 3),
+        (500, "uncertain", 3),
+    ],
 )
-async def test_safe_status_diagnostics_keep_uncertainty_and_never_retry(
-    system: System, status: int, expected: str
+async def test_safe_status_diagnostics_retry_only_transient_failures(
+    system: System, status: int, expected: str, writes: int
 ):
     connection = await system.connect()
     system.backend.failures["1 Ui"] = f"reject-{status}"
@@ -199,9 +224,9 @@ async def test_safe_status_diagnostics_keep_uncertainty_and_never_retry(
     assert result["status"] == expected and result["completed"] == 0
     assert f"HTTP {status}" in result["message"] and "toevoegen" in result["message"]
     assert "private-token" not in json.dumps(result)
-    assert len(system.backend.writes()) == 1
+    assert len(system.backend.writes()) == writes
     await system.start(connection, ["1 Ui", "Niet toevoegen"], eid)
-    assert len(system.backend.writes()) == 1
+    assert len(system.backend.writes()) == writes
 
 
 async def test_failed_read_only_inspection_reports_safe_diagnostics(system: System):
@@ -216,7 +241,7 @@ async def test_failed_read_only_inspection_reports_safe_diagnostics(system: Syst
     assert result["status"] == "uncertain" and result["verified_absent"] is False
     assert "HTTP 403" in result["message"] and "lezen" in result["message"]
     assert "private server detail" not in json.dumps(result)
-    assert len(system.backend.writes()) == 1
+    assert len(system.backend.writes()) == 3
 
 
 async def test_connections_and_identical_export_ids_remain_separate(system: System):

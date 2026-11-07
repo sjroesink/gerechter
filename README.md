@@ -228,7 +228,7 @@ je pas na de werkelijke lokale actie. Notion-tokens stel je in de webinterface i
 Providerverificatie: request-/responsecontracten, paginering, limieten, afwijzingen en onzekere resultaten
 zijn getest zonder live Notion-writes. Een live accountcontrole vereist een ingestelde eigen verbinding.
 
-## Albert Heijn (experimenteel)
+## Albert Heijn
 
 De optionele Python-sidecar gebruikt [python-appie 0.2.2](https://pypi.org/project/python-appie/0.2.2/).
 Dit is een onofficiële API: de koppeling kan uitvallen als AH iets wijzigt. Gerechter schrijft uitsluitend
@@ -280,8 +280,11 @@ vastgelegd en niet automatisch bijgewerkt.
 De exporthistorie toont de voortgang per lijst. Dezelfde verzoeksleutel gebruikt dezelfde duurzame job.
 Exact aanwezige tekstregels worden overgeslagen; er worden geen hoeveelheden op een bestaande AH-tekstregel
 geraden of overschreven. Voor een productregel wordt het beoogde eindaantal vóór het schrijven bewaard en
-bevestigt een controle de regel pas als het product minstens met dat aantal op de lijst staat. Bij een deelresultaat, netwerkfout of herstart wordt niets automatisch opnieuw
-geschreven. ‘Extern resultaat controleren’ leest de AH-lijst om onzekere regels te herkennen. Omdat een
+bevestigt een controle de regel pas als het product minstens met dat aantal op de lijst staat. Niet-gekoppelde
+ingrediënten gaan als één korte regel naar AH, bijvoorbeeld ‘Knoflook (2,25 teen)’, zonder notities. Weigert AH
+één regel, dan gaat de export met de rest door en noemt het resultaat de geweigerde regel. Bij een tijdelijke
+fout leest de sidecar de lijst opnieuw en probeert het hoogstens twee keer opnieuw, alleen als de regel er dan
+nog niet op staat. Na een herstart wordt niets automatisch opnieuw geschreven. ‘Extern resultaat controleren’ leest de AH-lijst om onzekere regels te herkennen. Omdat een
 AH-export alleen aanvult wat nog ontbreekt, kun je een gerecht, dag of week gewoon opnieuw naar AH sturen,
 ook na een onzeker resultaat; alleen tijdens een lopende AH-export wordt een nieuwe geweigerd. Voor Delen en
 Notion blijft een bewuste herhaalkeuze nodig.

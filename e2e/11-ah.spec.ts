@@ -36,7 +36,7 @@ test('eigenaar koppelt AH en exporteert via de echte sidecar met gecontroleerd A
   await expect(page).toHaveURL(/\/meer\/boodschappen\/historie\/[^/?]+$/)
   exportPath = new URL(page.url()).pathname
   await expect(page.getByText('Verzonden', { exact: true })).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByText(/AH \(experimenteel\): 1 van 1 regels bevestigd/)).toBeVisible()
+  await expect(page.getByText(/Albert Heijn: 1 van 1 regels op de lijst/)).toBeVisible()
   await expect(page.getByLabel('Boodschappenlijst')).toContainText('300 g · Tomaten in blokjes')
   await expectMobileLayout(page)
   await page.emulateMedia({ colorScheme: 'dark' })
@@ -71,7 +71,7 @@ test('AH-product koppelen vanuit boodschappen en ingrediëntpagina; export stuur
   await page.getByRole('button', { name: 'Zet op lijst · Albert Heijn', exact: true }).click()
   await expect(page).toHaveURL(/\/meer\/boodschappen\/historie\/[^/?]+$/)
   await expect(page.getByText('Verzonden', { exact: true })).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByText(/AH \(experimenteel\): 1 van 1 regels bevestigd/)).toBeVisible()
+  await expect(page.getByText(/Albert Heijn: 1 van 1 regels op de lijst/)).toBeVisible()
 
   await page.goto('/meer/ingredienten')
   await page.getByLabel('Zoek ingrediënten').fill('tomaat in blik')

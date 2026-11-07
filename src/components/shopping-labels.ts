@@ -1,4 +1,4 @@
-export const shoppingTargetLabels = { share: 'Delen/kopiëren', notion: 'Notion', ah: 'AH (experimenteel)' }
+export const shoppingTargetLabels = { share: 'Delen/kopiëren', notion: 'Notion', ah: 'Albert Heijn' }
 export const shoppingStatusLabels = {
   pending: 'Klaargezet / wordt verwerkt',
   succeeded: 'Verzonden',

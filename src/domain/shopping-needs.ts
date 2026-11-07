@@ -130,6 +130,17 @@ export async function calculateShoppingNeeds(
     ),
   ]
   const lines = items.flatMap(textLines)
+  // The AH list gets one short line per ingredient; notes and conversion remarks stay in the app.
+  const ahText = (item: ShoppingLine) => {
+    const amounts = [
+      ...(item.needed > 0 ? [`${number.format(item.needed)} ${item.baseUnit}`] : []),
+      ...item.unknown.flatMap((line) =>
+        line.quantity === null ? [] : [`${number.format(line.quantity)} ${line.unit}`],
+      ),
+    ]
+    const text = amounts.length ? `${item.name} (${amounts.join(' + ')})` : item.name
+    return text.length > 80 ? item.name.slice(0, 80) : text
+  }
   const links = await getAhProductLinks(
     ctx,
     items.map((item) => item.ingredientId),
@@ -139,7 +150,7 @@ export async function calculateShoppingNeeds(
   for (const item of items) {
     const link = links.get(item.ingredientId)
     if (!link) {
-      ahItems.push(...textLines(item).map((description) => ({ kind: 'text' as const, description })))
+      ahItems.push({ kind: 'text', description: ahText(item) })
       continue
     }
     const { quantity, check } = ahQuantity(item, link.packAmount)

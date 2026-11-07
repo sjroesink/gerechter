@@ -94,7 +94,7 @@ export function ahSidecar(config: AhSidecarConfig, fetcher: typeof fetch = fetch
       return {
         status: job.status,
         externalId: runId,
-        message: `AH (experimenteel): ${job.completed} van ${job.total} regels bevestigd.${job.message && job.status !== 'succeeded' ? ` ${job.message}` : ''}`,
+        message: `Albert Heijn: ${job.completed} van ${job.total} regels op de lijst.${job.message && job.status !== 'succeeded' ? ` ${job.message}` : ''}`,
         verifiedAbsent: checking && job.verified_absent === true,
       }
     }

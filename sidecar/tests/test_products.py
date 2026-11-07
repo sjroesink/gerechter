@@ -230,7 +230,7 @@ async def test_mixed_export_writes_text_and_product_lines(system: System):
         "status": "succeeded",
         "completed": 3,
         "total": 3,
-        "message": "3 van 3 regels aanwezig of bevestigd.",
+        "message": "3 van 3 regels op de lijst.",
         "verified_absent": False,
     }
     bodies = [call["body"]["items"][0] for call in system.backend.writes()]
@@ -303,7 +303,7 @@ async def test_export_id_reuse_with_other_products_is_rejected(system: System):
     assert len(system.backend.writes()) == 2
 
 
-async def test_failure_after_a_product_write_is_uncertain_and_stops(system: System):
+async def test_persistent_failure_after_retries_is_uncertain_and_stops(system: System):
     connection = await system.connect()
     system.backend.failures["AH Trostomaten"] = "timeout-before"
     eid, _ = await system.start(
@@ -321,6 +321,8 @@ async def test_failure_after_a_product_write_is_uncertain_and_stops(system: Syst
     assert [call["body"]["items"][0]["productId"] for call in system.backend.writes()] == [
         1525,
         4471,
+        4471,
+        4471,
     ]
     lines = system.app.state.store.job(connection["connection_id"], eid)["lines"]
     assert [(line["status"], line["target_quantity"]) for line in lines] == [
@@ -331,25 +333,28 @@ async def test_failure_after_a_product_write_is_uncertain_and_stops(system: Syst
     checked = await system.status(connection, eid, check=True)
     assert checked.json()["status"] == "uncertain"
     assert checked.json()["verified_absent"] is True
-    assert len(system.backend.writes()) == 2
+    assert len(system.backend.writes()) == 4
 
 
-async def test_rejected_first_product_write_fails_without_further_writes(system: System):
+async def test_rejected_product_is_skipped_and_the_rest_continues(system: System):
     connection = await system.connect()
     system.backend.failures["Uit assortiment"] = "reject"
     eid, _ = await system.start(
         connection, [], products=[product(5, 1, "Uit assortiment"), product(6, 1, "Ander")]
     )
     result = await system.finished(connection, eid)
-    assert result["status"] == "failed" and "HTTP 400" in result["message"]
-    assert len(system.backend.writes()) == 1
+    assert result["status"] == "uncertain" and result["completed"] == 1
+    assert "AH weigerde 1 regel: Uit assortiment." in result["message"]
+    assert len(system.backend.writes()) == 2
+    lines = system.app.state.store.job(connection["connection_id"], eid)["lines"]
+    assert [line["status"] for line in lines] == ["pending", "sent"]
 
 
 async def test_inspection_confirms_product_only_at_or_above_target(system: System):
     connection = await system.connect()
     cid = connection["connection_id"]
     system.backend.products[cid][1525] = {"description": "AH Uien", "quantity": 1}
-    system.backend.failures["AH Uien"] = "timeout-after"
+    system.backend.failures["AH Uien"] = "timeout-before"
     eid, _ = await system.start(connection, [], products=[product(1525, 3, "AH Uien")])
     assert (await system.finished(connection, eid))["status"] == "uncertain"
     assert system.app.state.store.job(cid, eid)["lines"][0]["target_quantity"] == 3
@@ -360,7 +365,7 @@ async def test_inspection_confirms_product_only_at_or_above_target(system: Syste
     system.backend.products[cid][1525]["quantity"] = 4
     higher = (await system.status(connection, eid, check=True)).json()
     assert higher["status"] == "succeeded" and higher["completed"] == 1
-    assert len(system.backend.writes()) == 1
+    assert len(system.backend.writes()) == 3
 
 
 async def test_inspection_does_not_confirm_product_without_target(system: System):

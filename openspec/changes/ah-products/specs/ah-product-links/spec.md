@@ -83,12 +83,37 @@ Omdat een AH-export alleen aanvult wat nog ontbreekt, SHALL een nieuwe AH-export
 - **WHEN** een lid een gerecht dat al naar AH is geëxporteerd opnieuw naar AH stuurt
 - **THEN** start de export zonder herhaalkeuze en blijven regels die al op de lijst staan ongewijzigd
 
-### Requirement: Herhaalveiligheid van productregels
-De bestaande exportgaranties MUST ook voor productregels gelden: dezelfde export-ID met dezelfde inhoud schrijft niet opnieuw, voortgang wordt per regel duurzaam bewaard, na een mogelijk uitgevoerde schrijfactie wordt niet automatisch verder of opnieuw geschreven, en fouten bevatten geen geheimen of ruwe AH-antwoorden.
+### Requirement: Herhaalveiligheid van AH-regels
+Dezelfde export-ID met dezelfde inhoud MUST niet opnieuw schrijven, voortgang MUST per regel duurzaam worden bewaard en fouten MUST geen geheimen of ruwe AH-antwoorden bevatten. Na een tijdelijke fout (time-out, verbindingsfout, 408, 409, 429, 5xx) SHALL een regel hoogstens twee keer opnieuw worden geprobeerd, en alleen nadat een nieuwe leesactie van de lijst laat zien dat de regel er nog niet (genoeg) op staat.
 
-#### Scenario: Onzeker productresultaat controleren
-- **WHEN** het antwoord op een productregel wegvalt en later een statuscontrole wordt gedaan
-- **THEN** wordt de regel alleen bevestigd als het product minstens met het beoogde eindaantal op de lijst staat, en wordt er niets opnieuw verstuurd
+#### Scenario: Antwoord valt weg maar AH bewaarde de regel
+- **WHEN** het antwoord op een schrijfactie wegvalt terwijl AH de regel wel heeft opgeslagen
+- **THEN** ziet de nieuwe leesactie de regel, wordt die niet opnieuw geschreven en gaat de export verder
+
+#### Scenario: Blijvende tijdelijke fout
+- **WHEN** ook de herhaalpogingen mislukken
+- **THEN** stopt de export met een onzeker resultaat en bevestigt een latere controle een productregel alleen als het product minstens met het beoogde aantal op de lijst staat
+
+### Requirement: Geweigerde regel overslaan
+Weigert AH één regel definitief (HTTP 400 of 422), dan MUST die regel als niet toegevoegd worden bewaard en SHALL de export met de overige regels doorgaan. Het resultaat MUST de geweigerde regels noemen. Een weigering van de aanmelding of toegang (401, 403) MUST de export stoppen.
+
+#### Scenario: Eén regel geweigerd
+- **WHEN** AH bij een export van 11 regels alleen de tweede regel weigert
+- **THEN** staan de andere 10 op de lijst en noemt het resultaat de geweigerde regel
+
+### Requirement: Korte AH-tekstregels
+Een niet-gekoppeld ingrediënt SHALL als één korte tekstregel naar AH gaan: de naam met de bekende hoeveelheden tussen haakjes, zonder opmerkingen, bronnotities of omrekeningswaarschuwingen, hoogstens 80 tekens. Delen en Notion houden de volledige tekstregels.
+
+#### Scenario: Onbekende omrekening
+- **WHEN** 2,25 teen knoflook nodig is zonder gewichtsomrekening en met een notitie
+- **THEN** gaat "Knoflook (2,25 teen)" naar de AH-lijst
+
+### Requirement: Albert Heijn als volwaardig doel
+De app MUST Albert Heijn niet langer als experimenteel aanduiden. Is precies één externe lijst (Notion of AH) ingesteld, dan SHALL die in het boodschappenoverzicht standaard als doel geselecteerd zijn; anders blijft Delen de standaard.
+
+#### Scenario: Alleen AH gekoppeld
+- **WHEN** een huishouden alleen AH heeft ingesteld en het boodschappenoverzicht opent
+- **THEN** is Albert Heijn als doel geselecteerd
 
 ### Requirement: Koppelen in de app
 De app SHALL op de ingrediëntpagina een AH-productsectie tonen om te zoeken, koppelen, inhoud aan te passen en te ontkoppelen, en in het boodschappenoverzicht bij AH als doel per te kopen ingrediënt product en aantal of een koppelactie tonen. Dit SHALL alleen verschijnen als de AH-sidecar is ingesteld en MUST bruikbaar zijn vanaf 360 px met aanraakdoelen van minimaal 44×44 px.

@@ -18,7 +18,7 @@ export function AhConnectionForm({
   const [message, setMessage] = useState<string | null>(null)
   return (
     <section className="flex flex-col gap-3">
-      <SectionTitle>Albert Heijn · experimenteel</SectionTitle>
+      <SectionTitle>Albert Heijn</SectionTitle>
       {error && <Notice tone="error">{error}</Notice>}
       {message && <Notice tone="success">{message}</Notice>}
       <Notice>

@@ -147,10 +147,19 @@ describe('boodschappenbehoefte met AH-producten', () => {
     return { a, b, tomato, cherry, herbs, salt, pepper, source }
   }
 
-  test('zonder koppelingen zijn de AH-regels gelijk aan de tekstregels', async () => {
+  test('zonder koppelingen krijgt AH per ingrediënt één korte tekstregel zonder opmerkingen', async () => {
     const { a, source } = await setup()
     const need = await calculateShoppingNeeds(a, source)
-    expect(need.ahItems).toEqual(need.lines.map((description) => ({ kind: 'text', description })))
+    expect(need.ahItems).toHaveLength(need.items.length)
+    expect(need.ahItems).toEqual(
+      expect.arrayContaining([
+        { kind: 'text', description: 'Peterselie (1 bos)' },
+        { kind: 'text', description: 'Peper (1 snuf)' },
+      ]),
+    )
+    expect(
+      need.ahItems?.some((item) => item.kind === 'text' && item.description.includes('controleer')),
+    ).toBe(false)
     expect(need.items.every((item) => item.ahProduct === null)).toBe(true)
   })
 
@@ -178,10 +187,8 @@ describe('boodschappenbehoefte met AH-producten', () => {
     )
     expect(need.ahItems?.filter((item) => item.kind === 'product')).toHaveLength(2)
     expect(need.ahItems?.some((item) => item.kind === 'product' && item.productId === 30)).toBe(false)
-    const herbLines = need.lines.filter((line) => line.includes('Peterselie'))
-    expect(herbLines.length).toBeGreaterThan(0)
     expect(need.ahItems).toEqual(
-      expect.arrayContaining(herbLines.map((description) => ({ kind: 'text', description }))),
+      expect.arrayContaining([{ kind: 'text', description: 'Peterselie (1 bos)' }]),
     )
     expect(need.ahItems?.some((item) => item.kind === 'text' && item.description.includes('Tomaten'))).toBe(
       false,
