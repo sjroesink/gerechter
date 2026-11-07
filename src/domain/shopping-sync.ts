@@ -33,6 +33,8 @@ export const shoppingExportInput = z
     fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
     target: z.enum(shoppingTargets),
     allowRepeat: z.boolean().default(false),
+    /** Ingredient ids from the proposal's items to leave off this export. */
+    skip: z.array(z.string().min(1).max(100)).max(500).default([]),
   })
   .strict()
 export const shareOutcomeInput = z
@@ -345,11 +347,15 @@ export async function startShoppingExport(
       throw new Invalid(
         'Deze verbinding is niet ingesteld. Laat de eigenaar deze bij Boodschappen › Verbindingen instellen.',
       )
-    const needs = await calculateShoppingNeeds(txCtx, data.source)
-    if (needs.fingerprint !== data.fingerprint)
+    const proposal = await calculateShoppingNeeds(txCtx, data.source)
+    if (proposal.fingerprint !== data.fingerprint)
       throw new Conflict(
         'De behoefte is gewijzigd. Open een actueel boodschappenvoorstel voordat je exporteert.',
       )
+    // The fingerprint guards the proposal the member saw; the snapshot holds only what is sent.
+    const needs = data.skip.length
+      ? await calculateShoppingNeeds(txCtx, data.source, { skip: data.skip })
+      : proposal
     if (!needs.lines.length) throw new Invalid('Er zijn geen boodschappen om te exporteren.')
     const targetKey = targetKeyFor(data.target, connection?.destinationId)
     const overlaps = await tx
@@ -393,7 +399,7 @@ export async function startShoppingExport(
         connectionId: connection?.id ?? null,
         source: needs.source,
         sourceKeys: needs.sourceKeys,
-        fingerprint: needs.fingerprint,
+        fingerprint: proposal.fingerprint,
         snapshot: needs,
       })
       .returning({ id: syncRun.id })

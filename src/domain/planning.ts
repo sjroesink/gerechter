@@ -5,7 +5,7 @@ import { calendarDateInput, shiftDate, todayAmsterdam, weekDates } from './calen
 import { Conflict, Invalid, NotFound, type Ctx } from './core'
 import { parseInput } from './core/validation'
 import { getHouseholdPreferences } from './preferences'
-import { getRecipe } from './recipes'
+import { displayImage, getRecipe } from './recipes'
 
 const common = { date: calendarDateInput, note: z.string().max(2000).default('') }
 const plannedRecipeInput = z
@@ -119,6 +119,8 @@ export async function getPlanRange(ctx: Ctx, from: string, through: string) {
       freeTitle: plannedMeal.title,
       recipeName: recipe.name,
       recipeArchivedAt: recipe.archivedAt,
+      photoUrl: recipe.photoUrl,
+      photoImageId: recipe.photoImageId,
       servings: plannedMeal.servings,
       note: plannedMeal.note,
       version: plannedMeal.version,
@@ -136,9 +138,10 @@ export async function getPlanRange(ctx: Ctx, from: string, through: string) {
     .orderBy(asc(plannedMeal.date), asc(plannedMeal.createdAt), asc(plannedMeal.id))
   return {
     defaultServings,
-    items: rows.map(({ recipeName, freeTitle, ...row }) => ({
+    items: rows.map(({ recipeName, freeTitle, photoUrl, photoImageId, ...row }) => ({
       ...row,
       title: recipeName ?? freeTitle ?? 'Gerecht niet beschikbaar',
+      imageUrl: recipeName ? displayImage({ photoUrl, photoImageId }) : null,
       effectiveServings: row.kind === 'recipe' ? (row.servings ?? defaultServings) : null,
     })),
   }

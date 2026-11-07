@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { madeEvent } from '~/db/schema'
 import { ahQuantity, getAhProductLinks, MAX_AH_QUANTITY } from './ah-products'
 import { calendarDateInput, weekDates } from './calendar'
-import type { Ctx } from './core'
+import { Invalid, type Ctx } from './core'
 import { parseInput } from './core/validation'
 import { getPantryItem } from './pantry'
 import { getPlanRange } from './planning'
@@ -33,9 +33,11 @@ export const shoppingSourceInput = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('week'), date: calendarDateInput }).strict(),
 ])
 const number = new Intl.NumberFormat('nl-NL', { maximumSignificantDigits: 8 })
+/** `skip` leaves those items to buy off this calculation; unknown ids are refused. */
 export async function calculateShoppingNeeds(
   ctx: Ctx,
   input: z.input<typeof shoppingSourceInput>,
+  options: { skip?: readonly string[] } = {},
 ): Promise<ShoppingNeeds> {
   const data = parseInput(shoppingSourceInput, input)
   const source: ShoppingSource =
@@ -122,6 +124,10 @@ export async function calculateShoppingNeeds(
     else if (result.needed > 0 || result.unknown.length > 0) items.push(result)
     else covered.push(result)
   }
+  const skip = new Set(options.skip)
+  const skipped = items.filter((item) => skip.has(item.ingredientId))
+  if (skipped.length !== skip.size) throw new Invalid('Een overgeslagen item hoort niet bij dit voorstel.')
+  if (skipped.length) items.splice(0, items.length, ...items.filter((item) => !skip.has(item.ingredientId)))
   const textLines = (item: ShoppingLine) => [
     ...(item.needed > 0 ? [`${number.format(item.needed)} ${item.baseUnit} · ${item.name}`] : []),
     ...item.unknown.map(
@@ -178,6 +184,7 @@ export async function calculateShoppingNeeds(
     sourceKeys: sources.map((item) => item.key),
     sources,
     items,
+    ...(skipped.length ? { skipped } : {}),
     staples,
     covered,
     ignored,
@@ -193,6 +200,9 @@ export async function calculateShoppingNeeds(
     `Boodschappen · ${title}`,
     '',
     ...(lines.length ? lines.map((line) => `☐ ${line}`) : ['Geen boodschappen nodig.']),
+    ...(skipped.length
+      ? ['', `Al in huis (overgeslagen): ${skipped.map((item) => item.name).join(', ')}`]
+      : []),
     ...(staples.length
       ? ['', `Basisvoorraad (niet toegevoegd): ${staples.map((item) => item.name).join(', ')}`]
       : []),

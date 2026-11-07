@@ -1,6 +1,7 @@
 import { createFileRoute, Link, stripSearchParams } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { ArchiveIcon, PlusIcon, PotIcon } from '~/components/icons'
+import { RecipeThumb } from '~/components/recipe-thumb'
 import {
   EmptyState,
   Notice,
@@ -156,28 +157,5 @@ function RecipesPage() {
         )}
       </Page>
     </>
-  )
-}
-
-function RecipeThumb({ name, photoUrl }: { name: string; photoUrl: string | null }) {
-  const [failed, setFailed] = useState<string | null>(null)
-  if (photoUrl && failed !== photoUrl)
-    return (
-      <img
-        src={photoUrl}
-        alt=""
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        className="size-14 shrink-0 rounded-xl bg-muted object-cover"
-        onError={() => setFailed(photoUrl)}
-      />
-    )
-  return (
-    <span
-      aria-hidden="true"
-      className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-muted font-display text-[22px] font-bold text-ink-2"
-    >
-      {name.charAt(0).toUpperCase()}
-    </span>
   )
 }

@@ -91,12 +91,12 @@ async def test_repeated_and_concurrent_export_id_starts_one_write_per_line(syste
     )
     assert all(response.status_code == 202 for _, response in results)
     assert (await system.finished(connection, eid))["completed"] == 2
-    assert len(system.backend.writes()) == 2
+    assert len(system.backend.writes()) == 1 and len(system.backend.written()) == 2
     await system.start(connection, ["300 g Tomaten", "1 Ui"], eid)
-    assert len(system.backend.writes()) == 2
+    assert len(system.backend.writes()) == 1
     _, changed = await system.start(connection, ["Andere inhoud"], eid)
     assert changed.status_code == 409
-    assert len(system.backend.writes()) == 2
+    assert len(system.backend.writes()) == 1
 
 
 async def test_duplicate_input_lines_preserve_multiplicity_and_existing_text_is_not_overwritten(
@@ -119,10 +119,9 @@ async def test_write_saved_by_ah_without_response_is_recognised_on_reread(system
     eid, _ = await system.start(connection, ["300 g Tomaten", "1 Ui"])
     result = await system.finished(connection, eid)
     assert result["status"] == "succeeded" and result["completed"] == 2
-    descriptions = [call["body"]["items"][0]["description"] for call in system.backend.writes()]
-    assert descriptions == ["300 g Tomaten", "1 Ui"]
+    assert [item["description"] for item in system.backend.written()] == ["300 g Tomaten", "1 Ui"]
     await system.start(connection, ["300 g Tomaten", "1 Ui"], eid)
-    assert len(system.backend.writes()) == 2
+    assert len(system.backend.writes()) == 1
     assert "private-token" not in json.dumps(result)
 
 
@@ -132,9 +131,21 @@ async def test_transient_failure_is_retried_after_rereading_the_list(system: Sys
     eid, _ = await system.start(connection, ["1 Ui", "2 Eieren"])
     result = await system.finished(connection, eid)
     assert result["status"] == "succeeded" and result["completed"] == 2
-    descriptions = [call["body"]["items"][0]["description"] for call in system.backend.writes()]
-    assert descriptions == ["1 Ui", "1 Ui", "2 Eieren"]
+    assert len(system.backend.writes()) == 2
+    assert [item["description"] for item in system.backend.written()] == ["1 Ui", "2 Eieren"] * 2
     assert system.backend.items[connection["connection_id"]] == {"1 Ui": 1, "2 Eieren": 1}
+
+
+async def test_write_without_items_in_the_response_still_succeeds(system: System):
+    # python-appie's add_item fails on such an answer although AH stored the lines.
+    connection = await system.connect()
+    system.backend.empty_write_response = True
+    lines = [f"Regel {number}" for number in range(30)]
+    eid, _ = await system.start(connection, lines)
+    result = await system.finished(connection, eid)
+    assert result["status"] == "succeeded" and result["completed"] == 30
+    assert [len(call["body"]["items"]) for call in system.backend.writes()] == [25, 5]
+    assert len(system.backend.items[connection["connection_id"]]) == 30
 
 
 async def test_partial_result_stops_writes_and_only_deliberate_new_export_adds_missing_lines(
@@ -144,16 +155,16 @@ async def test_partial_result_stops_writes_and_only_deliberate_new_export_adds_m
     system.backend.failures["1 Ui"] = "timeout-before"
     eid, _ = await system.start(connection, ["300 g Tomaten", "1 Ui", "2 Eieren"])
     result = await system.finished(connection, eid)
-    assert result["status"] == "uncertain" and result["completed"] == 1
-    assert len(system.backend.writes()) == 4
+    assert result["status"] == "uncertain" and result["completed"] == 0
+    assert len(system.backend.writes()) == 3
     checked = await system.status(connection, eid, check=True)
     assert checked.json()["verified_absent"] is True
-    assert len(system.backend.writes()) == 4
+    assert len(system.backend.writes()) == 3
     system.backend.failures.clear()
     next_id, _ = await system.start(connection, ["300 g Tomaten", "1 Ui", "2 Eieren"])
     assert (await system.finished(connection, next_id))["completed"] == 3
-    descriptions = [call["body"]["items"][0]["description"] for call in system.backend.writes()]
-    assert descriptions.count("300 g Tomaten") == 1
+    assert system.backend.items[connection["connection_id"]]["300 g Tomaten"] == 1
+    assert len(system.backend.writes()) == 4
 
 
 async def test_rejected_line_is_skipped_and_a_failed_initial_read_does_not_continue(
@@ -165,21 +176,21 @@ async def test_rejected_line_is_skipped_and_a_failed_initial_read_does_not_conti
     result = await system.finished(connection, eid)
     assert result["status"] == "uncertain" and result["completed"] == 1
     assert result["message"] == ("AH weigerde 1 regel: 1 Ui. Voeg die zelf toe in de AH-app.")
-    assert len(system.backend.writes()) == 2
+    assert len(system.backend.writes()) == 3
     assert "private-token" not in json.dumps(result)
     system.backend.failures["Zout"] = "reject-422"
     only, _ = await system.start(connection, ["1 Ui", "Zout"])
     rejected = await system.finished(connection, only)
     assert rejected["status"] == "failed" and rejected["completed"] == 0
     assert "AH weigerde 2 regels: 1 Ui; Zout." in rejected["message"]
-    assert len(system.backend.writes()) == 4
+    assert len(system.backend.writes()) == 6
     system.backend.fail_reads = True
     next_id, _ = await system.start(connection, ["Nieuw"])
     read_result = await system.finished(connection, next_id)
     assert read_result["status"] == "failed"
     assert "HTTP 403" in read_result["message"] and "lezen" in read_result["message"]
     assert "private server detail" not in json.dumps(read_result)
-    assert len(system.backend.writes()) == 4
+    assert len(system.backend.writes()) == 6
 
 
 async def test_text_payload_preserves_full_description_without_inventing_product(system: System):

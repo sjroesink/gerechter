@@ -43,6 +43,8 @@ export type ShoppingNeeds = {
     name: string
   }[]
   items: ShoppingLine[]
+  /** Items the member chose to leave off this export ("al in huis"). Only present when non-empty. */
+  skipped?: ShoppingLine[]
   staples: ShoppingLine[]
   covered: ShoppingLine[]
   ignored: { id: string; title: string; reason: 'free' | 'made' }[]

@@ -207,7 +207,8 @@ async def test_product_lines_with_the_same_id_are_merged_and_capped(system: Syst
     )
     result = await system.finished(connection, eid)
     assert result["status"] == "succeeded" and result["total"] == 2
-    bodies = [call["body"]["items"][0] for call in system.backend.writes()]
+    assert len(system.backend.writes()) == 1
+    bodies = system.backend.written()
     assert [(b["productId"], b["quantity"], b["description"]) for b in bodies] == [
         (1525, 5, "AH Uien"),
         (4471, 99, "AH Trostomaten"),
@@ -233,7 +234,8 @@ async def test_mixed_export_writes_text_and_product_lines(system: System):
         "message": "3 van 3 regels op de lijst.",
         "verified_absent": False,
     }
-    bodies = [call["body"]["items"][0] for call in system.backend.writes()]
+    assert len(system.backend.writes()) == 1
+    bodies = system.backend.written()
     assert bodies == [
         {
             "description": "2× 1 blik Bonen",
@@ -300,7 +302,7 @@ async def test_export_id_reuse_with_other_products_is_rejected(system: System):
     ):
         _, response = await system.start(connection, ["Zout"], eid, changed)
         assert response.status_code == 409
-    assert len(system.backend.writes()) == 2
+    assert len(system.backend.writes()) == 1 and len(system.backend.written()) == 2
 
 
 async def test_persistent_failure_after_retries_is_uncertain_and_stops(system: System):
@@ -316,24 +318,22 @@ async def test_persistent_failure_after_retries_is_uncertain_and_stops(system: S
         ],
     )
     result = await system.finished(connection, eid)
-    assert result["status"] == "uncertain" and result["completed"] == 1
+    assert result["status"] == "uncertain" and result["completed"] == 0
     assert "time-out" in result["message"] and "private-token" not in json.dumps(result)
-    assert [call["body"]["items"][0]["productId"] for call in system.backend.writes()] == [
-        1525,
-        4471,
-        4471,
-        4471,
-    ]
+    assert len(system.backend.writes()) == 3
+    assert [item["productId"] for item in system.backend.written()] == [1525, 4471, 77] * 3
     lines = system.app.state.store.job(connection["connection_id"], eid)["lines"]
     assert [(line["status"], line["target_quantity"]) for line in lines] == [
-        ("sent", 1),
+        ("inflight", 1),
         ("inflight", 2),
-        ("pending", None),
+        ("inflight", 1),
     ]
     checked = await system.status(connection, eid, check=True)
     assert checked.json()["status"] == "uncertain"
     assert checked.json()["verified_absent"] is True
-    assert len(system.backend.writes()) == 4
+    assert "time-out" in checked.json()["message"]
+    assert "niet alle regels teruggevonden" in checked.json()["message"]
+    assert len(system.backend.writes()) == 3
 
 
 async def test_rejected_product_is_skipped_and_the_rest_continues(system: System):
@@ -345,7 +345,8 @@ async def test_rejected_product_is_skipped_and_the_rest_continues(system: System
     result = await system.finished(connection, eid)
     assert result["status"] == "uncertain" and result["completed"] == 1
     assert "AH weigerde 1 regel: Uit assortiment." in result["message"]
-    assert len(system.backend.writes()) == 2
+    # The rejected batch is split up, so only the rejected line stays off the list.
+    assert [len(call["body"]["items"]) for call in system.backend.writes()] == [2, 1, 1]
     lines = system.app.state.store.job(connection["connection_id"], eid)["lines"]
     assert [line["status"] for line in lines] == ["pending", "sent"]
 

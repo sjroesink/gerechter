@@ -51,6 +51,7 @@ class Backend:
         self.search_failure: str | None = None
         self.calls: list[dict[str, Any]] = []
         self.failures: dict[str, str] = {}
+        self.empty_write_response = False
         self.fail_reads = False
         self.write_gate: asyncio.Event | None = None
 
@@ -128,50 +129,60 @@ class Backend:
             assert request.method == "PATCH"
             if self.write_gate is not None:
                 await self.write_gate.wait()
-            item = body["items"][0]
-            is_product = "productId" in item
-            if is_product and (
-                set(item) != PRODUCT_KEYS
-                or not isinstance(item["productId"], int)
-                or item["type"] != "SHOPPABLE"
-                or item["originCode"] != "PRD"
-            ):
-                return httpx.Response(400, json={"detail": "Invalid product payload"})
-            if not is_product and (
-                item.get("originCode") != "PRD"
-                or item.get("strikeThrough") is not False
-                or item.get("type") != "SHOPPABLE"
-            ):
-                return httpx.Response(400, json={"detail": "Invalid shopping-list payload"})
-            description = item["description"]
-            failure = self.failures.get(description)
-            if failure == "once-503":
-                del self.failures[description]
-                return httpx.Response(503, json={"detail": "private-token response body"})
-            if failure == "reject":
-                return httpx.Response(400, json={"detail": "private-token response body"})
-            if failure and failure.startswith("reject-"):
-                return httpx.Response(
-                    int(failure.removeprefix("reject-")),
-                    json={"detail": "private-token response body"},
-                )
-            if failure == "timeout-before":
+            batch = body["items"]
+            for item in batch:
+                is_product = "productId" in item
+                if is_product and (
+                    set(item) != PRODUCT_KEYS
+                    or not isinstance(item["productId"], int)
+                    or item["type"] != "SHOPPABLE"
+                    or item["originCode"] != "PRD"
+                ):
+                    return httpx.Response(400, json={"detail": "Invalid product payload"})
+                if not is_product and (
+                    item.get("originCode") != "PRD"
+                    or item.get("strikeThrough") is not False
+                    or item.get("type") != "SHOPPABLE"
+                ):
+                    return httpx.Response(400, json={"detail": "Invalid shopping-list payload"})
+            # A batch is atomic: one failing line fails the whole request, as a real API would.
+            failures = [self.failures.get(item["description"]) for item in batch]
+            for item, failure in zip(batch, failures, strict=True):
+                if failure == "once-503":
+                    del self.failures[item["description"]]
+                    return httpx.Response(503, json={"detail": "private-token response body"})
+            for failure in failures:
+                if failure == "reject":
+                    return httpx.Response(400, json={"detail": "private-token response body"})
+                if failure and failure.startswith("reject-"):
+                    return httpx.Response(
+                        int(failure.removeprefix("reject-")),
+                        json={"detail": "private-token response body"},
+                    )
+            if "timeout-before" in failures:
                 raise httpx.ReadTimeout("private-token timeout", request=request)
-            if is_product:
-                self.products[connection_id][item["productId"]] = {
-                    "description": description,
-                    "quantity": item["quantity"],
-                }
-            else:
-                self.items[connection_id][description] = item["quantity"]
-            if failure == "timeout-after":
+            for item in batch:
+                if "productId" in item:
+                    self.products[connection_id][item["productId"]] = {
+                        "description": item["description"],
+                        "quantity": item["quantity"],
+                    }
+                else:
+                    self.items[connection_id][item["description"]] = item["quantity"]
+            if "timeout-after" in failures:
                 raise httpx.ReadTimeout("private-token timeout", request=request)
-            return httpx.Response(200, json={"items": [item]})
+            if self.empty_write_response:
+                return httpx.Response(200)
+            return httpx.Response(200, json={"items": batch})
 
         return httpx.MockTransport(handle)
 
     def writes(self) -> list[dict[str, Any]]:
         return [call for call in self.calls if call["method"] == "PATCH"]
+
+    def written(self) -> list[dict[str, Any]]:
+        """Every line sent, across batched PATCH requests."""
+        return [item for call in self.writes() for item in call["body"]["items"]]
 
 
 @dataclass

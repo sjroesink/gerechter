@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ChevronLeftIcon, ChevronRightIcon, ListIcon, PlusIcon } from '~/components/icons'
 import { dayOfMonth, formatWeekRange, isoWeek, weekdayShort } from '~/components/planning-dates'
+import { RecipeThumb } from '~/components/recipe-thumb'
 import { Notice, Page, SectionHeader, buttonClass, cx, iconButtonClass, rowCardClass } from '~/components/ui'
 import { formatCalendarDay, isCalendarDate, todayAmsterdam } from '~/domain/calendar'
 import type { PlanSummary } from '~/domain/planning'
@@ -181,20 +182,29 @@ function DayCard({ date, items, today }: { date: string; items: PlanSummary[]; t
           </span>
         )}
         {items.map((item) => (
-          <span key={item.id} className="flex min-w-0 flex-col">
-            <span
-              className={cx(
-                'text-base break-words lg:text-[15px] lg:leading-snug',
-                item.kind === 'free' ? 'font-medium text-ink-2 italic' : 'font-semibold',
-              )}
-            >
-              {item.title}
-            </span>
+          <span key={item.id} className="flex min-w-0 items-center gap-3">
             {item.kind === 'recipe' && (
-              <span className="text-[13px] text-ink-3">
-                {item.effectiveServings} personen{item.recipeArchivedAt ? ' · gearchiveerd' : ''}
-              </span>
+              <RecipeThumb
+                name={item.title}
+                photoUrl={item.imageUrl}
+                className="size-12 rounded-xl text-lg lg:size-10 lg:rounded-lg lg:text-base"
+              />
             )}
+            <span className="flex min-w-0 flex-col">
+              <span
+                className={cx(
+                  'text-base break-words lg:text-[15px] lg:leading-snug',
+                  item.kind === 'free' ? 'font-medium text-ink-2 italic' : 'font-semibold',
+                )}
+              >
+                {item.title}
+              </span>
+              {item.kind === 'recipe' && (
+                <span className="text-[13px] text-ink-3">
+                  {item.effectiveServings} personen{item.recipeArchivedAt ? ' · gearchiveerd' : ''}
+                </span>
+              )}
+            </span>
           </span>
         ))}
       </span>

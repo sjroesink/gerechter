@@ -101,6 +101,20 @@ Weigert AH één regel definitief (HTTP 400 of 422), dan MUST die regel als niet
 - **WHEN** AH bij een export van 11 regels alleen de tweede regel weigert
 - **THEN** staan de andere 10 op de lijst en noemt het resultaat de geweigerde regel
 
+### Requirement: Regels in één verzoek
+De sidecar SHALL de nog ontbrekende regels in blokken van hoogstens 25 per schrijfverzoek naar AH sturen en MUST een geslaagd verzoek niet afhankelijk maken van de inhoud van het AH-antwoord. Weigert AH een blok, dan SHALL de sidecar de regels daarvan afzonderlijk schrijven. Een latere controle MUST de oorspronkelijke foutmelding behouden.
+
+#### Scenario: Antwoord zonder items
+- **WHEN** AH een schrijfverzoek met een leeg antwoord bevestigt
+- **THEN** gelden alle regels van dat verzoek als verzonden
+
+### Requirement: Items overslaan bij exporteren
+Een lid SHALL in het boodschappenoverzicht per te kopen item kunnen uitvinken dat het al in huis is. Uitgevinkte items MUST bij die export voor elk doel wegblijven en in de momentopname als overgeslagen worden bewaard; de keuze wordt niet onthouden. De fingerprint MUST het getoonde voorstel bewaken en een onbekend of volledig overgeslagen voorstel MUST worden geweigerd.
+
+#### Scenario: Olijfolie al in huis
+- **WHEN** een lid olijfolie uitvinkt en naar AH exporteert
+- **THEN** komt olijfolie niet op de AH-lijst en noemt de exporttekst het als al in huis
+
 ### Requirement: Korte AH-tekstregels
 Een niet-gekoppeld ingrediënt SHALL als één korte tekstregel naar AH gaan: de naam met de bekende hoeveelheden tussen haakjes, zonder opmerkingen, bronnotities of omrekeningswaarschuwingen, hoogstens 80 tekens. Delen en Notion houden de volledige tekstregels.
 

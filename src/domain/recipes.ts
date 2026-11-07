@@ -307,7 +307,7 @@ export async function searchRecipes(ctx: Ctx, input: z.input<typeof recipeSearch
 }
 
 /** Weergave: de eigen kopie als die er is, anders de originele foto-URL. */
-function displayImage(row: { photoUrl: string | null; photoImageId: string | null }) {
+export function displayImage(row: { photoUrl: string | null; photoImageId: string | null }) {
   return row.photoImageId ? imagePath(row.photoImageId) : row.photoUrl
 }
 

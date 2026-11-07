@@ -8,13 +8,18 @@ const number = new Intl.NumberFormat('nl-NL', { maximumSignificantDigits: 8 })
 const listClass = 'flex flex-col overflow-hidden rounded-2xl bg-surface'
 const rowClass = 'border-b border-line-soft px-4 py-3 break-words last:border-b-0'
 
-/** With `ah`, each item to buy shows its linked AH product and pack count, or a way to link one. */
+/**
+ * With `ah`, each item to buy shows its linked AH product and pack count, or a way to link one.
+ * With `selection`, each item to buy gets a checkbox; unchecked items stay off this export.
+ */
 export function ShoppingNeedsView({
   needs,
   ah,
+  selection,
 }: {
   needs: ShoppingNeeds
   ah?: { onLinked: () => void | Promise<void> }
+  selection?: { skipped: ReadonlySet<string>; toggle: (ingredientId: string) => void; disabled?: boolean }
 }) {
   const [picking, setPicking] = useState<string | null>(null)
   return (
@@ -24,48 +29,67 @@ export function ShoppingNeedsView({
           <Notice>Geen boodschappen nodig voor deze selectie.</Notice>
         ) : (
           <ul className={listClass}>
-            {needs.items.map((item) => (
-              <li key={item.ingredientId} className={`flex items-start gap-3 ${rowClass}`}>
-                <IngredientAvatar photo={item.photo} name={item.name} />
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="min-w-0 font-semibold break-words">{item.name}</h3>
-                    {item.needed > 0 && (
-                      <span className="shrink-0 font-bold text-tomato-dark tabular-nums">
-                        {number.format(item.needed)} {item.baseUnit}
-                        <span className="sr-only"> te kopen</span>
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[13px] text-ink-3">
-                    Nodig: {number.format(item.required)} {item.baseUnit} · in huis:{' '}
-                    {number.format(item.available)} {item.baseUnit}
-                  </p>
-                  {item.unknown.map((line, index) => (
-                    <p key={index} className="rounded-xl bg-amber-soft px-3 py-2 text-[13px] text-amber-ink">
-                      {line.quantity === null ? 'Naar smaak' : `${number.format(line.quantity)} ${line.unit}`}{' '}
-                      · {line.reason}. Controleer dit zelf; er is geen hoeveelheid geraden.
-                      {line.note ? ` ${line.note}` : ''}
+            {needs.items.map((item) => {
+              const skipped = selection?.skipped.has(item.ingredientId) ?? false
+              return (
+                <li key={item.ingredientId} className={`flex items-start gap-3 ${rowClass}`}>
+                  {selection && (
+                    <input
+                      type="checkbox"
+                      checked={!skipped}
+                      disabled={selection.disabled}
+                      onChange={() => selection.toggle(item.ingredientId)}
+                      aria-label={`${item.name} op de lijst zetten`}
+                      className="-ml-2 size-11 shrink-0 accent-tomato"
+                    />
+                  )}
+                  <IngredientAvatar photo={item.photo} name={item.name} />
+                  <div className={`flex min-w-0 flex-1 flex-col gap-1 ${skipped ? 'opacity-55' : ''}`}>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <h3 className="min-w-0 font-semibold break-words">{item.name}</h3>
+                      {item.needed > 0 && (
+                        <span className="shrink-0 font-bold text-tomato-dark tabular-nums">
+                          {number.format(item.needed)} {item.baseUnit}
+                          <span className="sr-only"> te kopen</span>
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[13px] text-ink-3">
+                      Nodig: {number.format(item.required)} {item.baseUnit} · in huis:{' '}
+                      {number.format(item.available)} {item.baseUnit}
                     </p>
-                  ))}
-                  {ah &&
-                    (picking === item.ingredientId ? (
-                      <AhProductPicker
-                        ingredientId={item.ingredientId}
-                        ingredientName={item.name}
-                        baseUnit={item.baseUnit}
-                        onCancel={() => setPicking(null)}
-                        onSaved={async () => {
-                          setPicking(null)
-                          await ah.onLinked()
-                        }}
-                      />
-                    ) : (
-                      <AhLine item={item} pick={() => setPicking(item.ingredientId)} />
+                    {item.unknown.map((line, index) => (
+                      <p
+                        key={index}
+                        className="rounded-xl bg-amber-soft px-3 py-2 text-[13px] text-amber-ink"
+                      >
+                        {line.quantity === null
+                          ? 'Naar smaak'
+                          : `${number.format(line.quantity)} ${line.unit}`}{' '}
+                        · {line.reason}. Controleer dit zelf; er is geen hoeveelheid geraden.
+                        {line.note ? ` ${line.note}` : ''}
+                      </p>
                     ))}
-                </div>
-              </li>
-            ))}
+                    {ah &&
+                      (picking === item.ingredientId ? (
+                        <AhProductPicker
+                          ingredientId={item.ingredientId}
+                          ingredientName={item.name}
+                          baseUnit={item.baseUnit}
+                          onCancel={() => setPicking(null)}
+                          onSaved={async () => {
+                            setPicking(null)
+                            await ah.onLinked()
+                          }}
+                        />
+                      ) : (
+                        <AhLine item={item} pick={() => setPicking(item.ingredientId)} />
+                      ))}
+                    {skipped && <p className="text-[13px] text-ink-2">Al in huis · gaat niet mee</p>}
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
       </Group>

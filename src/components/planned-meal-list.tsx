@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { PlanSummary } from '~/domain/planning'
 import { ChevronRightIcon } from './icons'
+import { RecipeBanner } from './recipe-thumb'
 import { Badge, cx } from './ui'
 
 /** Geplande maaltijden van een dag als witte kaarten die naar de maaltijd leiden. */
@@ -12,8 +13,12 @@ export function PlannedMealList({ items }: { items: PlanSummary[] }) {
           <Link
             to="/week/maaltijd/$mealId"
             params={{ mealId: item.id }}
-            className="flex w-full flex-col gap-3 rounded-[20px] bg-surface p-5 text-ink transition-colors hover:bg-ground"
+            className="flex w-full flex-col gap-3 overflow-hidden rounded-[20px] bg-surface p-5 text-ink transition-colors hover:bg-ground"
           >
+            <RecipeBanner
+              photoUrl={item.imageUrl}
+              className="-mx-5 -mt-5 mb-1 h-40 w-[calc(100%+2.5rem)] max-w-none"
+            />
             <span
               className={cx(
                 'font-display text-[26px] leading-[1.1] tracking-tight break-words',

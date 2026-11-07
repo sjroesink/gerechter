@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { CheckIcon, ChevronRightIcon } from '~/components/icons'
+import { IngredientAvatar } from '~/components/ingredient-header'
 import { dayTitle } from '~/components/planning-dates'
+import { RecipeBanner } from '~/components/recipe-thumb'
 import {
   ActionBar,
   Button,
@@ -62,7 +64,16 @@ function PlannedMealPage() {
       />
       <Page>
         {error && <Notice tone="error">{error}</Notice>}
-        <section aria-labelledby="meal-title" className="flex flex-col gap-3.5 rounded-[20px] bg-surface p-5">
+        <section
+          aria-labelledby="meal-title"
+          className="flex flex-col gap-3.5 overflow-hidden rounded-[20px] bg-surface p-5"
+        >
+          {recipe && (
+            <RecipeBanner
+              photoUrl={recipe.imageUrl}
+              className="-mx-5 -mt-5 mb-1 h-52 w-[calc(100%+2.5rem)] max-w-none lg:h-64"
+            />
+          )}
           {recipe && recipe.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {recipe.tags.map((tag) => (
@@ -150,8 +161,9 @@ function PlannedMealPage() {
                 {recipe.ingredients.map((line, index) => (
                   <li
                     key={index}
-                    className="flex items-baseline gap-3 border-b border-line-soft px-4 py-3 last:border-b-0"
+                    className="flex items-center gap-3 border-b border-line-soft px-4 py-3 last:border-b-0"
                   >
+                    <IngredientAvatar photo={line.photo} name={line.name} />
                     <span className="flex min-w-0 flex-1 flex-col break-words">
                       <span>{line.name}</span>
                       {line.note && <span className="text-[13px] text-ink-3">{line.note}</span>}

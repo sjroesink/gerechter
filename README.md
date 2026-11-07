@@ -287,7 +287,10 @@ fout leest de sidecar de lijst opnieuw en probeert het hoogstens twee keer opnie
 nog niet op staat. Na een herstart wordt niets automatisch opnieuw geschreven. ‘Extern resultaat controleren’ leest de AH-lijst om onzekere regels te herkennen. Omdat een
 AH-export alleen aanvult wat nog ontbreekt, kun je een gerecht, dag of week gewoon opnieuw naar AH sturen,
 ook na een onzeker resultaat; alleen tijdens een lopende AH-export wordt een nieuwe geweigerd. Voor Delen en
-Notion blijft een bewuste herhaalkeuze nodig.
+Notion blijft een bewuste herhaalkeuze nodig. De sidecar stuurt ontbrekende regels in blokken van 25 per
+verzoek, zoals de oorspronkelijke appie-go-client, en gebruikt het antwoord van AH alleen voor de status.
+In het boodschappenoverzicht kun je per item uitvinken wat je al in huis hebt; dat gaat dan bij die export
+niet mee.
 Bij fouten toont de historie de mislukte fase en waar beschikbaar de HTTP-status, zonder ruwe
 AH-antwoorden of aanmeldgegevens. De tekstregeladapter corrigeert het payload van python-appie 0.2.2
 naar het formaat van de oorspronkelijke appie-go-client (PRD en strikeThrough=false).

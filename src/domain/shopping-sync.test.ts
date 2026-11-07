@@ -4,7 +4,7 @@ import { shoppingConnection, syncRun, syncSourceClaim } from '~/db/schema'
 import { setupTestDb } from '../../tests/db'
 import { addMember, twoHouseholds } from '../../tests/fixtures'
 import { createIngredient } from './catalog'
-import { Conflict, Forbidden, NotFound } from './core'
+import { Conflict, Forbidden, Invalid, NotFound } from './core'
 import { setPantryItem } from './pantry'
 import { createPlannedMeal } from './planning'
 import { createRecipe } from './recipes'
@@ -90,6 +90,57 @@ describe('boodschappenverbindingen en bronclaims', () => {
     })
     for (const value of [run, await getShoppingTargets(a), await listSyncRuns(a)])
       expect(JSON.stringify(value)).not.toContain(reference.connectionKey)
+  })
+
+  test('uitgevinkte items gaan niet mee; de fingerprint bewaakt het getoonde voorstel', async () => {
+    const { a, deps, send } = await setup()
+    const tomato = await createIngredient(a, { name: 'Pruimtomaten', baseUnit: 'g' })
+    const onion = await createIngredient(a, { name: 'Ui', baseUnit: 'stuk' })
+    const recipe = await createRecipe(a, {
+      name: 'Saus',
+      servings: 2,
+      ingredients: [
+        { ingredientId: tomato.id, quantity: 400, unit: 'g' },
+        { ingredientId: onion.id, quantity: 1, unit: 'stuk' },
+      ],
+    })
+    await saveNotionConnection(
+      a,
+      { pageId: crypto.randomUUID(), token: 'ntn_this-is-a-fictitious-test-token' },
+      SECRET,
+    )
+    const proposal = await prepareShopping(a, { kind: 'recipe', recipeId: recipe.id, servings: 2 })
+    const request = {
+      source: proposal.source,
+      fingerprint: proposal.fingerprint,
+      target: 'notion' as const,
+    }
+    await expect(
+      startShoppingExport(
+        a,
+        { ...request, requestId: crypto.randomUUID(), skip: [crypto.randomUUID()] },
+        deps,
+      ),
+    ).rejects.toBeInstanceOf(Invalid)
+    await expect(
+      startShoppingExport(
+        a,
+        { ...request, requestId: crypto.randomUUID(), skip: [tomato.id, onion.id] },
+        deps,
+      ),
+    ).rejects.toBeInstanceOf(Invalid)
+    const run = await startShoppingExport(
+      a,
+      { ...request, requestId: proposal.requestId, skip: [onion.id] },
+      deps,
+    )
+    const sent = send.mock.calls[0]![0].needs
+    expect(sent.items.map((item) => item.name)).toEqual(['Pruimtomaten'])
+    expect(sent.skipped?.map((item) => item.name)).toEqual(['Ui'])
+    expect(sent.lines.some((line) => line.includes('Ui'))).toBe(false)
+    expect(sent.text).toContain('Al in huis (overgeslagen): Ui')
+    expect(sent.ahItems).toEqual([{ kind: 'text', description: 'Pruimtomaten (400 g)' }])
+    expect((await getSyncRun(a, run.id)).snapshot.skipped).toHaveLength(1)
   })
 
   test('AH kijkt zelf wat al op de lijst staat: herhalen mag zonder herhaalkeuze, maar niet tijdens een lopende export', async () => {

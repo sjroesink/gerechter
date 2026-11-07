@@ -65,6 +65,8 @@ function ShoppingPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [repeat, setRepeat] = useState(false)
+  // Unchecked items belong to one proposal; a new fingerprint starts with everything checked again.
+  const [skip, setSkip] = useState<{ fingerprint: string; ids: Set<string> } | null>(null)
   // With exactly one connected list (Notion or AH) that list is the obvious choice.
   const [target, setTarget] = useState<Target>(() => {
     const connected = result.ok
@@ -87,6 +89,14 @@ function ShoppingPage() {
     needs?.source.kind === 'recipe' && needs.sources[0]
       ? { id: needs.source.recipeId, name: needs.sources[0].name }
       : undefined
+  const skipped = needs && skip?.fingerprint === needs.fingerprint ? skip.ids : new Set<string>()
+  const selected = (needs?.items.length ?? 0) - skipped.size
+  function toggle(ingredientId: string) {
+    if (!needs) return
+    const ids = new Set(skipped)
+    if (!ids.delete(ingredientId)) ids.add(ingredientId)
+    setSkip({ fingerprint: needs.fingerprint, ids })
+  }
   const available = targets.filter((option) => option.target !== 'ah' || option.configured)
   const chosen = available.find((option) => option.target === target && option.configured)
   async function exportTo(target: Target) {
@@ -101,6 +111,7 @@ function ShoppingPage() {
           requestId: needs.requestId,
           target,
           allowRepeat: repeat,
+          skip: [...skipped],
         },
       })
       if (exported.ok)
@@ -191,6 +202,7 @@ function ShoppingPage() {
             <ShoppingNeedsView
               needs={needs}
               ah={target === 'ah' && chosen ? { onLinked: () => router.invalidate() } : undefined}
+              selection={{ skipped, toggle, disabled: busy }}
             />
             {needs.lines.length > 0 && (
               <section className="flex flex-col gap-2.5" aria-label="Waarheen?">
@@ -301,12 +313,13 @@ function ShoppingPage() {
         {needs && needs.lines.length > 0 && (
           <ActionBar>
             <p className="text-center text-sm text-ink-2">
-              {needs.lines.length === 1 ? '1 item' : `${needs.lines.length} items`} na aftrek van voorraad en
-              basisvoorraad
+              {skipped.size
+                ? `${selected} van ${needs.items.length} items · ${skipped.size} al in huis`
+                : `${needs.items.length === 1 ? '1 item' : `${needs.items.length} items`} na aftrek van voorraad en basisvoorraad`}
             </p>
             <Button
               className="min-h-13 text-base"
-              disabled={busy || !chosen}
+              disabled={busy || !chosen || selected === 0}
               onClick={() => chosen && exportTo(chosen.target)}
             >
               {busy ? 'Bezig…' : `Zet op lijst · ${targetNames[target]}`}

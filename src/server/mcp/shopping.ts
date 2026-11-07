@@ -45,7 +45,7 @@ export function registerShoppingTools(server: McpServer, getCtx: () => Promise<C
     {
       title: 'Boodschappenexport bevestigen',
       description:
-        'Start alleen op expliciete opdracht om deze gecontroleerde lijst naar het gekozen doel te exporteren. Gebruik source, requestId en fingerprint uit prepare_shopping. share zet de tekst klaar; Notion maakt echt een checklistpagina. Bij netwerkherhaling exact dezelfde invoer gebruiken. Overlappende bronnen worden voor share/Notion geweigerd tenzij de gebruiker bewust opnieuw exporteren kiest (allowRepeat=true); controleer daar onzekere eerdere resultaten eerst. AH leest eerst de lijst en voegt alleen toe wat ontbreekt of te weinig is, dus herhalen naar AH mag zonder allowRepeat (niet tijdens een lopende AH-export). Nooit automatisch opnieuw versturen.',
+        'Start alleen op expliciete opdracht om deze gecontroleerde lijst naar het gekozen doel te exporteren. Gebruik source, requestId en fingerprint uit prepare_shopping. skip (ingredientIds uit items) laat items die de gebruiker al in huis heeft bij deze export weg; alleen op aanwijzing van de gebruiker. share zet de tekst klaar; Notion maakt echt een checklistpagina. Bij netwerkherhaling exact dezelfde invoer gebruiken. Overlappende bronnen worden voor share/Notion geweigerd tenzij de gebruiker bewust opnieuw exporteren kiest (allowRepeat=true); controleer daar onzekere eerdere resultaten eerst. AH leest eerst de lijst en voegt alleen toe wat ontbreekt of te weinig is, dus herhalen naar AH mag zonder allowRepeat (niet tijdens een lopende AH-export). Nooit automatisch opnieuw versturen.',
       inputSchema: shoppingExportInput,
       annotations: { readOnlyHint: false, destructiveHint: false },
     },
