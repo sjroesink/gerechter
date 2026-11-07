@@ -3,6 +3,7 @@ import type { InstructionSection } from '~/domain/instructions'
 import { CloseIcon } from './icons'
 import { IngredientThumbnail } from './ingredient-photo'
 import { RecipeInstructions } from './recipe-instructions'
+import { TimerDockContext } from './timer-dock'
 import type { IngredientPhoto } from '~/domain/ingredient-photo'
 
 type WakeState = 'pending' | 'on' | 'unsupported'
@@ -59,6 +60,7 @@ export function CookingMode({
 }) {
   const wake = useWakeLock(true)
   const close = useRef<HTMLButtonElement>(null)
+  const [dock, setDock] = useState<HTMLDivElement | null>(null)
   useEffect(() => {
     close.current?.focus()
     const overflow = document.body.style.overflow
@@ -79,20 +81,23 @@ export function CookingMode({
       aria-label={`Kookmodus · ${name}`}
       className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-ground text-ink"
     >
-      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-line-soft bg-ground/95 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 backdrop-blur">
-        <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-semibold text-tomato">Kookmodus</p>
-          <h1 className="font-display text-xl leading-tight font-bold break-words">{name}</h1>
+      <header className="sticky top-0 z-10 border-b border-line-soft bg-ground/95 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 backdrop-blur">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-semibold text-tomato">Kookmodus</p>
+            <h1 className="font-display text-xl leading-tight font-bold break-words">{name}</h1>
+          </div>
+          <button
+            ref={close}
+            type="button"
+            onClick={onClose}
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-surface px-4 text-[15px] font-bold hover:bg-line-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tomato"
+          >
+            <CloseIcon size={18} />
+            Sluiten
+          </button>
         </div>
-        <button
-          ref={close}
-          type="button"
-          onClick={onClose}
-          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-surface px-4 text-[15px] font-bold hover:bg-line-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tomato"
-        >
-          <CloseIcon size={18} />
-          Sluiten
-        </button>
+        <div ref={setDock} className="flex flex-col gap-2 [&:not(:empty)]:mt-3" />
       </header>
       <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 pt-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
         <p role="status" className="text-[13px] text-ink-3">
@@ -117,7 +122,9 @@ export function CookingMode({
             ))}
           </ul>
         </section>
-        <RecipeInstructions sections={sections} />
+        <TimerDockContext.Provider value={dock}>
+          <RecipeInstructions sections={sections} />
+        </TimerDockContext.Provider>
       </div>
     </div>
   )

@@ -4,6 +4,7 @@ import { CookingMode } from '~/components/cooking-mode'
 import { ChevronLeftIcon, ChevronRightIcon, ImageIcon, PencilIcon, PotIcon } from '~/components/icons'
 import { IngredientThumbnail } from '~/components/ingredient-photo'
 import { RecipeInstructions } from '~/components/recipe-instructions'
+import { TimerDockContext } from '~/components/timer-dock'
 import {
   ActionBar,
   Badge,
@@ -68,6 +69,7 @@ function RecipeDetail({ item }: { item: Recipe }) {
   const stats = item.stats
   const [cooking, setCooking] = useState(false)
   const closeCooking = useCallback(() => setCooking(false), [])
+  const [dock, setDock] = useState<HTMLDivElement | null>(null)
   const actions = (
     <>
       {!item.archivedAt && (
@@ -86,6 +88,10 @@ function RecipeDetail({ item }: { item: Recipe }) {
   )
   return (
     <Page className="lg:gap-5 lg:[&>:last-child]:hidden">
+      <div
+        ref={setDock}
+        className="pointer-events-none fixed inset-x-0 top-0 z-20 flex flex-col gap-2 px-4 pt-[max(0.5rem,env(safe-area-inset-top))]"
+      />
       <nav aria-label="Kruimelpad" className="hidden text-sm text-ink-3 lg:block">
         <Link
           to="/gerechten"
@@ -183,7 +189,9 @@ function RecipeDetail({ item }: { item: Recipe }) {
             <PotIcon size={20} />
             Kookmodus
           </button>
-          <RecipeInstructions key={`${item.id}-${item.version}`} sections={item.sections} />
+          <TimerDockContext.Provider value={dock}>
+            <RecipeInstructions key={`${item.id}-${item.version}`} sections={item.sections} />
+          </TimerDockContext.Provider>
           <section aria-label="Meer bij dit gerecht" className="flex flex-col gap-2">
             <SectionTitle>Meer</SectionTitle>
             <div className="flex flex-col overflow-hidden rounded-2xl bg-surface">

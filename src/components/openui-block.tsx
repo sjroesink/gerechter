@@ -1,13 +1,22 @@
 import { createLibrary, defineComponent, Renderer } from '@openuidev/react-lang'
 import { isElementNode } from '@openuidev/lang-core'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { checklistProps, stepProps, stepsProps, timerProps, tipProps } from '~/domain/instructions'
 import { BulbIcon, CheckIcon, TimerIcon } from './icons'
-import { Button } from './ui'
+import { TimerDockContext } from './timer-dock'
+import { Button, cx } from './ui'
 
 function KitchenTimer({ label, minutes }: { label: string; minutes: number }) {
   const [remaining, setRemaining] = useState(minutes * 60)
   const [deadline, setDeadline] = useState<number | null>(null)
+  // Started, paused halfway or finished: worth keeping in sight while you read on.
+  const [active, setActive] = useState(false)
+  const dock = useContext(TimerDockContext)
+  const section = useRef<HTMLElement>(null)
+  const [past, setPast] = useState(false)
+  // Position in the recipe, so several docked timers keep the order of the steps.
+  const [order, setOrder] = useState(0)
   useEffect(() => {
     if (deadline === null) return
     const interval = setInterval(() => {
@@ -18,9 +27,44 @@ function KitchenTimer({ label, minutes }: { label: string; minutes: number }) {
     return () => clearInterval(interval)
   }, [deadline])
   const running = deadline !== null && remaining > 0
+  useEffect(() => {
+    if (!dock || !active) return
+    let frame = 0
+    const check = () => {
+      frame = 0
+      const element = section.current
+      if (!element) return
+      setPast(element.getBoundingClientRect().bottom < dock.getBoundingClientRect().bottom)
+      setOrder([...document.querySelectorAll('[data-kitchen-timer]')].indexOf(element))
+    }
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(check)
+    }
+    schedule()
+    // Capture: scroll does not bubble, and cooking mode scrolls its own container instead of the window.
+    document.addEventListener('scroll', schedule, { capture: true, passive: true })
+    window.addEventListener('resize', schedule)
+    return () => {
+      cancelAnimationFrame(frame)
+      document.removeEventListener('scroll', schedule, { capture: true })
+      window.removeEventListener('resize', schedule)
+    }
+  }, [dock, active])
   const display = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`
+  const toggleText = running ? 'Pauzeren' : remaining === 0 ? 'Opnieuw starten' : 'Starten'
+  const toggle = () => {
+    if (running) setDeadline(null)
+    else {
+      const seconds = remaining || minutes * 60
+      setRemaining(seconds)
+      setDeadline(Date.now() + seconds * 1000)
+      setActive(true)
+    }
+  }
   return (
     <section
+      ref={section}
+      data-kitchen-timer=""
       aria-label={`Kookwekker ${label}`}
       className="flex flex-col gap-2.5 rounded-2xl bg-line-soft p-3 pl-4 sm:flex-row sm:items-center sm:gap-3.5"
     >
@@ -45,6 +89,7 @@ function KitchenTimer({ label, minutes }: { label: string; minutes: number }) {
           onClick={() => {
             setDeadline(null)
             setRemaining(minutes * 60)
+            setActive(false)
           }}
         >
           Herstellen
@@ -52,18 +97,49 @@ function KitchenTimer({ label, minutes }: { label: string; minutes: number }) {
         <button
           type="button"
           className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-ink px-4.5 text-[15px] font-bold text-surface hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tomato sm:flex-none"
-          onClick={() => {
-            if (running) setDeadline(null)
-            else {
-              const seconds = remaining || minutes * 60
-              setRemaining(seconds)
-              setDeadline(Date.now() + seconds * 1000)
-            }
-          }}
+          onClick={toggle}
         >
-          {running ? 'Pauzeren' : remaining === 0 ? 'Opnieuw starten' : 'Starten'}
+          {toggleText}
         </button>
       </div>
+      {dock &&
+        active &&
+        past &&
+        createPortal(
+          <div
+            role="group"
+            aria-label={`Kookwekker ${label} bovenaan`}
+            style={{ order }}
+            className="pointer-events-auto mx-auto flex w-full max-w-md items-center gap-1 rounded-full border border-line bg-surface p-1 pl-1.5 text-ink shadow-lg"
+          >
+            <button
+              type="button"
+              aria-label={`Naar kookwekker ${label}`}
+              onClick={() => section.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })}
+              className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-full px-2 text-left focus-visible:outline-2 focus-visible:outline-tomato"
+            >
+              <TimerIcon size={20} className="shrink-0" />
+              <span className="text-[17px] font-bold tabular-nums">{display}</span>
+              <span
+                className={cx(
+                  'min-w-0 truncate text-[13px]',
+                  remaining === 0 ? 'font-semibold text-herb-dark' : 'text-ink-3',
+                )}
+              >
+                {remaining === 0 ? `Tijd is om · ${label}` : label}
+              </span>
+            </button>
+            <button
+              type="button"
+              aria-label={`${toggleText} · ${label}`}
+              onClick={toggle}
+              className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-ink px-4 text-[15px] font-bold text-surface hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tomato"
+            >
+              {toggleText}
+            </button>
+          </div>,
+          dock,
+        )}
     </section>
   )
 }
