@@ -152,7 +152,9 @@ describe('AH-productkoppelingen', () => {
     expect((await getIngredient(a, global.id)).photo).toBeNull()
     a.user.role = 'admin'
     await linkAhProduct(a, { ingredientId: global.id, ...product(6) })
-    expect((await getIngredient(a, global.id)).photo?.sourceUrl).toBe('https://www.ah.nl/producten/product/wi6')
+    expect((await getIngredient(a, global.id)).photo?.sourceUrl).toBe(
+      'https://www.ah.nl/producten/product/wi6',
+    )
   })
 })
 
