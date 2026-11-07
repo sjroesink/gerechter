@@ -153,3 +153,14 @@ Bij ingestelde AH-sidecar en een AH-verbinding SHALL de ingrediëntenlijst per i
 #### Scenario: Wisselen tijdens exporteren
 - **WHEN** een lid in het boodschappenoverzicht bij een gekoppeld ingrediënt een ander product kiest
 - **THEN** toont een vernieuwd voorstel het nieuwe product met opnieuw berekend aantal
+
+### Requirement: Productfoto als ingrediëntfoto
+Bij koppelen met afbeelding SHALL die afbeelding de ingrediëntfoto worden, met bron "Albert Heijn" en de productpagina als bronlink, als het ingrediënt geen foto of een eerdere AH-foto heeft. Een zelf gekozen foto MUST blijven; een gedeeld ingrediënt krijgt alleen via een beheerder een foto; ontkoppelen MUST de foto laten staan.
+
+#### Scenario: Eerste koppeling geeft een foto
+- **WHEN** een lid een product met afbeelding koppelt aan een eigen ingrediënt zonder foto
+- **THEN** toont het ingrediënt de productafbeelding met bron "Albert Heijn"
+
+#### Scenario: Eigen foto blijft
+- **WHEN** het ingrediënt al een zelf gekozen foto heeft
+- **THEN** blijft die foto staan na het koppelen

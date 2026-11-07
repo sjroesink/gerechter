@@ -1,8 +1,9 @@
 import { and, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
-import { ingredientAhProduct } from '~/db/schema'
+import { ingredient, ingredientAhProduct } from '~/db/schema'
 import { getIngredient } from './catalog'
 import type { Ctx } from './core'
+import type { IngredientPhoto } from './ingredient-photo'
 import { parseInput } from './core/validation'
 import type { BaseUnit } from './units'
 
@@ -60,10 +61,29 @@ export async function getAhProductLink(ctx: Ctx, id: string) {
   return (await getAhProductLinks(ctx, [id])).get(id) ?? null
 }
 
-/** Any member may choose the product for their own household, also for a global ingredient. */
+const AH_CREDIT = 'Albert Heijn'
+
+/** Photo taken over from a linked AH product, so it can be replaced when another product is chosen. */
+export function ahProductPhoto(productId: number, imageUrl: string): IngredientPhoto {
+  return {
+    url: imageUrl,
+    sourceUrl: `https://www.ah.nl/producten/product/wi${productId}`,
+    credit: AH_CREDIT,
+    licenseUrl: null,
+  }
+}
+
+const fromAh = (photo: IngredientPhoto | null) =>
+  photo?.credit === AH_CREDIT && photo.sourceUrl?.startsWith('https://www.ah.nl/producten/product/') === true
+
+/**
+ * Any member may choose the product for their own household, also for a global ingredient. The product
+ * image becomes the ingredient photo when it has none (or one from an earlier AH product) and the member
+ * may edit the ingredient; a global ingredient is shared, so only an admin changes its photo.
+ */
 export async function linkAhProduct(ctx: Ctx, input: z.input<typeof linkAhProductInput>) {
   const data = parseInput(linkAhProductInput, input)
-  await getIngredient(ctx, data.ingredientId)
+  const item = await getIngredient(ctx, data.ingredientId)
   const fields = {
     productId: data.productId,
     title: data.title,
@@ -80,6 +100,11 @@ export async function linkAhProduct(ctx: Ctx, input: z.input<typeof linkAhProduc
       set: fields,
     })
     .returning()
+  if (data.imageUrl && item.canManage && (!item.photo || fromAh(item.photo)))
+    await ctx.db
+      .update(ingredient)
+      .set({ photo: ahProductPhoto(data.productId, data.imageUrl), updatedAt: new Date() })
+      .where(eq(ingredient.id, item.id))
   return present(row!)
 }
 

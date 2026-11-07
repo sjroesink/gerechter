@@ -80,6 +80,11 @@ test('AH-product koppelen vanuit boodschappen en ingrediëntpagina; export stuur
   const section = page.getByRole('region', { name: 'AH-product' })
   await expect(section).toContainText('AH Trostomaten')
   await expect(section).toContainText('Inhoud 500 g')
+  // The product image became the ingredient photo, credited to AH.
+  await expect(page.getByRole('link', { name: 'Foto: Albert Heijn' })).toHaveAttribute(
+    'href',
+    /^https:\/\/www\.ah\.nl\/producten\/product\/wi\d+$/,
+  )
   await section.getByRole('button', { name: 'Ontkoppelen', exact: true }).click()
   await section.getByRole('button', { name: 'AH-product koppelen', exact: true }).click()
   await page.getByLabel('Zoek bij Albert Heijn').fill('tomaten')

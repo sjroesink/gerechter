@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { setupTestDb } from '../../tests/db'
 import { twoHouseholds } from '../../tests/fixtures'
 import {
+  ahProductPhoto,
   ahQuantity,
   getAhProductLink,
   getAhProductLinks,
@@ -9,7 +10,7 @@ import {
   parseUnitSize,
   unlinkAhProduct,
 } from './ah-products'
-import { createIngredient, setIngredientArchived } from './catalog'
+import { createIngredient, getIngredient, setIngredientArchived, updateIngredient } from './catalog'
 import { Invalid, NotFound } from './core'
 import { setPantryItem } from './pantry'
 import { createRecipe } from './recipes'
@@ -120,6 +121,38 @@ describe('AH-productkoppelingen', () => {
     expect(await getAhProductLink(a, own.id)).toMatchObject({ productId: 3, packAmount: 250 })
     await setIngredientArchived(a, own.id, true)
     expect(await getAhProductLink(a, own.id)).toMatchObject({ productId: 3 })
+  })
+
+  test('de productfoto wordt de ingrediëntfoto, zonder een eigen foto of een gedeeld ingrediënt te overschrijven', async () => {
+    const { a } = await twoHouseholds(db)
+    const own = await createIngredient(a, { name: 'Rode peper', baseUnit: 'stuk' })
+    await linkAhProduct(a, { ingredientId: own.id, ...product(1), imageUrl: 'https://static.ah.nl/1.jpg' })
+    expect((await getIngredient(a, own.id)).photo).toEqual(ahProductPhoto(1, 'https://static.ah.nl/1.jpg'))
+    // Another product replaces a photo that came from AH.
+    await linkAhProduct(a, { ingredientId: own.id, ...product(2), imageUrl: 'https://static.ah.nl/2.jpg' })
+    expect((await getIngredient(a, own.id)).photo?.url).toBe('https://static.ah.nl/2.jpg')
+    // Unlinking or a product without image keeps the photo.
+    await unlinkAhProduct(a, own.id)
+    await linkAhProduct(a, { ingredientId: own.id, ...product(3), imageUrl: null })
+    expect((await getIngredient(a, own.id)).photo?.url).toBe('https://static.ah.nl/2.jpg')
+    // A photo the household chose itself stays.
+    const chosen = { url: 'https://example.com/peper.jpg', sourceUrl: null, credit: null, licenseUrl: null }
+    await updateIngredient(a, own.id, { name: 'Rode peper', aliases: [], photo: chosen })
+    await linkAhProduct(a, { ingredientId: own.id, ...product(4) })
+    expect((await getIngredient(a, own.id)).photo).toEqual(chosen)
+
+    a.user.role = 'admin'
+    const global = await createIngredient(a, {
+      name: `Globale peper ${crypto.randomUUID()}`,
+      baseUnit: 'stuk',
+      scope: 'global',
+    })
+    a.user.role = 'user'
+    await linkAhProduct(a, { ingredientId: global.id, ...product(5) })
+    expect((await getIngredient(a, global.id)).photo).toBeNull()
+    a.user.role = 'admin'
+    await linkAhProduct(a, { ingredientId: global.id, ...product(6) })
+    expect((await getIngredient(a, global.id)).photo?.sourceUrl).toBe('https://www.ah.nl/producten/product/wi6')
   })
 })
 

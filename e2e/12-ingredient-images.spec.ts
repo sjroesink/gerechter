@@ -26,8 +26,10 @@ test('foto met bron opslaan en terugzien in catalogus, voorraad, kiezer en recep
   await page.getByRole('link', { name: /^Tomaten in blokjes/ }).click()
   detailPath = new URL(page.url()).pathname
   await page.getByRole('button', { name: 'Gegevens wijzigen', exact: true }).click()
-  await page.getByText('Afbeelding (optioneel)', { exact: true }).click()
-  await page.getByLabel('Foto-URL', { exact: true }).fill(firstPhoto)
+  // The AH spec already gave this ingredient a product photo, which opens the image fields.
+  const photoField = page.getByLabel('Foto-URL', { exact: true })
+  if (!(await photoField.isVisible())) await page.getByText('Afbeelding (optioneel)', { exact: true }).click()
+  await photoField.fill(firstPhoto)
   await page.getByLabel('Bronpagina van de foto', { exact: true }).fill('https://example.test/tomaat')
   await page.getByLabel('Fotograaf / bron', { exact: true }).fill('Testbeeldbron')
   await page
