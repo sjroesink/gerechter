@@ -17,7 +17,15 @@ from gerechter_ah.store import LineInput
 
 SECRET = "sidecar-test-secret-with-at-least-32-characters"
 SEARCH_PATH = "/mobile-services/product/search/v2"
-PRODUCT_KEYS = {"productId", "quantity", "type", "originCode", "description", "searchTerm"}
+PRODUCT_KEYS = {
+    "productId",
+    "quantity",
+    "type",
+    "originCode",
+    "description",
+    "searchTerm",
+    "strikeThrough",
+}
 
 # Raw AH search payloads, mapped by python-appie's real ProductsAPI.
 CATALOG: list[dict[str, Any]] = [
@@ -137,6 +145,7 @@ class Backend:
                     or not isinstance(item["productId"], int)
                     or item["type"] != "SHOPPABLE"
                     or item["originCode"] != "PRD"
+                    or item["strikeThrough"] is not False
                 ):
                     return httpx.Response(400, json={"detail": "Invalid product payload"})
                 if not is_product and (

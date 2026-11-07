@@ -105,9 +105,12 @@ async def test_duplicate_input_lines_preserve_multiplicity_and_existing_text_is_
     connection = await system.connect()
     cid = connection["connection_id"]
     system.backend.items[cid][" 100 G   TOMATEN "] = 3
-    eid, _ = await system.start(connection, ["100 g Tomaten", "1 blik Bonen", "1 blik Bonen"])
+    system.backend.items[cid]["112,5 ml  Witte wijn"] = 1
+    eid, _ = await system.start(
+        connection, ["100 g Tomaten", "112,5 ml · Witte wijn", "1 blik Bonen", "1 blik Bonen"]
+    )
     result = await system.finished(connection, eid)
-    assert result["status"] == "succeeded" and result["total"] == 2
+    assert result["status"] == "succeeded" and result["total"] == 3
     assert len(system.backend.writes()) == 1
     assert system.backend.writes()[0]["body"]["items"][0]["description"] == "2× 1 blik Bonen"
     assert system.backend.items[cid][" 100 G   TOMATEN "] == 3

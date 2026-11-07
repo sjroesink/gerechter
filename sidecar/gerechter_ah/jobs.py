@@ -16,7 +16,9 @@ type ClientFactory = Callable[[str], AbstractAsyncContextManager[AHClient]]
 
 
 def normalized(value: str) -> str:
-    return " ".join(unicodedata.normalize("NFKC", value).casefold().split())
+    # AH drops the "·" separator from stored text items, so it never decides a match.
+    text = unicodedata.normalize("NFKC", value).casefold().replace("·", " ")
+    return " ".join(text.split())
 
 
 def product_amounts(items: list[ShoppingListItem]) -> dict[int, int]:

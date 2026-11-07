@@ -158,6 +158,7 @@ async def test_product_payload_uses_product_id_and_absolute_quantity(system: Sys
                 "originCode": "PRD",
                 "description": "AH Uien",
                 "searchTerm": "AH Uien",
+                "strikeThrough": False,
             }
         ]
     }
@@ -251,6 +252,7 @@ async def test_mixed_export_writes_text_and_product_lines(system: System):
             "originCode": "PRD",
             "description": "AH Uien",
             "searchTerm": "AH Uien",
+            "strikeThrough": False,
         },
     ]
     statuses = [line["status"] for line in system.app.state.store.job(cid, eid)["lines"]]
