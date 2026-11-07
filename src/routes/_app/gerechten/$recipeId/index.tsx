@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { useState } from 'react'
-import { ChevronLeftIcon, ChevronRightIcon, ImageIcon, PencilIcon } from '~/components/icons'
+import { useCallback, useState } from 'react'
+import { CookingMode } from '~/components/cooking-mode'
+import { ChevronLeftIcon, ChevronRightIcon, ImageIcon, PencilIcon, PotIcon } from '~/components/icons'
 import { IngredientThumbnail } from '~/components/ingredient-photo'
 import { RecipeInstructions } from '~/components/recipe-instructions'
 import {
@@ -65,6 +66,8 @@ function RecipeDetail({ item }: { item: Recipe }) {
   const servings = pending && pending.base === item.viewServings ? pending.value : item.viewServings
   const factor = servings / item.viewServings
   const stats = item.stats
+  const [cooking, setCooking] = useState(false)
+  const closeCooking = useCallback(() => setCooking(false), [])
   const actions = (
     <>
       {!item.archivedAt && (
@@ -172,6 +175,14 @@ function RecipeDetail({ item }: { item: Recipe }) {
               void navigate({ search: { servings: value }, replace: true, resetScroll: false })
             }}
           />
+          <button
+            type="button"
+            onClick={() => setCooking(true)}
+            className={buttonClass('secondary', 'w-full gap-2')}
+          >
+            <PotIcon size={20} />
+            Kookmodus
+          </button>
           <RecipeInstructions key={`${item.id}-${item.version}`} sections={item.sections} />
           <section aria-label="Meer bij dit gerecht" className="flex flex-col gap-2">
             <SectionTitle>Meer</SectionTitle>
@@ -240,6 +251,23 @@ function RecipeDetail({ item }: { item: Recipe }) {
       <ActionBar>
         <div className="flex gap-2.5">{actions}</div>
       </ActionBar>
+      {cooking && (
+        <CookingMode
+          name={item.name}
+          servings={servings}
+          sections={item.sections}
+          onClose={closeCooking}
+          lines={item.ingredients.map((line) => {
+            const quantity = line.scaledQuantity === null ? null : line.scaledQuantity * factor
+            return {
+              name: line.name,
+              amount: quantity === null ? 'naar smaak' : `${number.format(quantity)} ${line.unit}`,
+              note: line.note,
+              photo: line.photo,
+            }
+          })}
+        />
+      )}
     </Page>
   )
 }

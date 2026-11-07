@@ -8,6 +8,27 @@ let recipePath = ''
 test('gerecht met porties, vaste secties, timer en checklist aanmaken, wijzigen en herstellen', async ({
   page,
 }, testInfo) => {
+  await page.addInitScript(() => {
+    const log: string[] = []
+    Reflect.set(window, '__wakeLog', log)
+    Object.defineProperty(navigator, 'wakeLock', {
+      configurable: true,
+      value: {
+        request: async (type: string) => {
+          log.push(`request:${type}`)
+          const sentinel = Object.assign(new EventTarget(), {
+            released: false,
+            type,
+            release: async () => {
+              sentinel.released = true
+              log.push('release')
+            },
+          })
+          return sentinel
+        },
+      },
+    })
+  })
   await login(page, admin.email)
   await page.goto('/gerechten')
   await page.getByRole('link', { name: 'Nieuw gerecht' }).click()
@@ -49,6 +70,10 @@ test('gerecht met porties, vaste secties, timer en checklist aanmaken, wijzigen 
 
   const timer = page.getByRole('region', { name: 'Kookwekker Soep' })
   await expect(timer.getByRole('timer')).toHaveText('1:00')
+  // On a phone the buttons go below the time instead of squeezing the label into single letters.
+  const label = await timer.getByRole('heading', { name: 'Soep', exact: true }).boundingBox()
+  const start = await timer.getByRole('button', { name: 'Starten', exact: true }).boundingBox()
+  expect(start!.y).toBeGreaterThan(label!.y + label!.height - 1)
   await page.clock.install()
   await page.clock.pauseAt(new Date(Date.now() + 1000))
   await timer.getByRole('button', { name: 'Starten', exact: true }).click()
@@ -63,6 +88,20 @@ test('gerecht met porties, vaste secties, timer en checklist aanmaken, wijzigen 
   await expect(page.getByRole('checkbox', { name: 'Roeren', exact: true })).toBeChecked()
   await page.clock.resume()
   await expectMobileLayout(page)
+
+  await page.getByRole('button', { name: 'Kookmodus', exact: true }).click()
+  const mode = page.getByRole('dialog', { name: /^Kookmodus/ })
+  await expect(mode).toBeVisible()
+  await expect(mode.getByRole('heading', { name: 'Ingrediënten voor 4 personen' })).toBeVisible()
+  await expect(mode).toContainText('2 blik Tomaten in blokjes')
+  await expect(mode.getByText('Het scherm blijft aan zolang de kookmodus open is.')).toBeVisible()
+  await expect(mode.getByRole('region', { name: 'Kookwekker Soep' })).toBeVisible()
+  await mode.getByRole('checkbox').first().check()
+  expect(await page.evaluate(() => Reflect.get(window, '__wakeLog'))).toEqual(['request:screen'])
+  await expectMobileLayout(page)
+  await mode.getByRole('button', { name: 'Sluiten', exact: true }).click()
+  await expect(mode).toHaveCount(0)
+  expect(await page.evaluate(() => Reflect.get(window, '__wakeLog'))).toEqual(['request:screen', 'release'])
   await page.emulateMedia({ colorScheme: 'dark' })
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.screenshot({ path: testInfo.outputPath('recipe-dark.png'), fullPage: true })

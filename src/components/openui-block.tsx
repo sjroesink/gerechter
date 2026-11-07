@@ -22,24 +22,26 @@ function KitchenTimer({ label, minutes }: { label: string; minutes: number }) {
   return (
     <section
       aria-label={`Kookwekker ${label}`}
-      className="flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-2xl bg-line-soft py-2.5 pr-2.5 pl-4"
+      className="flex flex-col gap-2.5 rounded-2xl bg-line-soft p-3 pl-4 sm:flex-row sm:items-center sm:gap-3.5"
     >
-      <TimerIcon size={24} className="shrink-0" />
-      <div className="min-w-0 flex-1">
-        <div role="timer" className="text-[22px] font-bold tabular-nums">
-          {display}
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <TimerIcon size={24} className="shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div role="timer" className="text-[22px] leading-tight font-bold tabular-nums">
+            {display}
+          </div>
+          <h4 className="text-[13px] break-words text-ink-3">{label}</h4>
+          {remaining === 0 && (
+            <p role="status" className="text-[13px] font-semibold text-herb-dark">
+              Tijd is om.
+            </p>
+          )}
         </div>
-        <h4 className="text-[13px] break-words text-ink-3">{label}</h4>
-        {remaining === 0 && (
-          <p role="status" className="text-[13px] font-semibold text-herb-dark">
-            Tijd is om.
-          </p>
-        )}
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 sm:shrink-0">
         <Button
           variant="ghost"
-          className="px-3"
+          className="flex-1 px-3 sm:flex-none"
           onClick={() => {
             setDeadline(null)
             setRemaining(minutes * 60)
@@ -49,7 +51,7 @@ function KitchenTimer({ label, minutes }: { label: string; minutes: number }) {
         </Button>
         <button
           type="button"
-          className="inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-4.5 text-[15px] font-bold text-surface hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tomato"
+          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-ink px-4.5 text-[15px] font-bold text-surface hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tomato sm:flex-none"
           onClick={() => {
             if (running) setDeadline(null)
             else {
