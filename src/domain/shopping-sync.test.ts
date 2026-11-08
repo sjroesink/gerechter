@@ -143,6 +143,42 @@ describe('boodschappenverbindingen en bronclaims', () => {
     expect((await getSyncRun(a, run.id)).snapshot.skipped).toHaveLength(1)
   })
 
+  test('basisvoorraad gaat alleen op verzoek alsnog mee, met de hoeveelheid uit het recept', async () => {
+    const { a, deps, send } = await setup()
+    const rice = await createIngredient(a, { name: 'Basmatirijst', baseUnit: 'g' })
+    const onion = await createIngredient(a, { name: 'Ui', baseUnit: 'stuk' })
+    const recipe = await createRecipe(a, {
+      name: 'Rijst',
+      servings: 2,
+      ingredients: [
+        { ingredientId: rice.id, quantity: 300, unit: 'g' },
+        { ingredientId: onion.id, quantity: 1, unit: 'stuk' },
+      ],
+    })
+    // When counted stock covers a staple, adding it anyway still buys the recipe amount.
+    await setPantryItem(a, { ingredientId: rice.id, quantity: 500, unit: 'g', staple: true, version: 0 })
+    await saveNotionConnection(
+      a,
+      { pageId: crypto.randomUUID(), token: 'ntn_this-is-a-fictitious-test-token' },
+      SECRET,
+    )
+    const proposal = await prepareShopping(a, { kind: 'recipe', recipeId: recipe.id, servings: 2 })
+    expect(proposal.staples.map((item) => [item.name, item.needed])).toEqual([['Basmatirijst', 300]])
+    const request = { source: proposal.source, fingerprint: proposal.fingerprint, target: 'notion' as const }
+    for (const include of [[onion.id], [crypto.randomUUID()]])
+      await expect(
+        startShoppingExport(a, { ...request, requestId: crypto.randomUUID(), include }, deps),
+      ).rejects.toBeInstanceOf(Invalid)
+    await startShoppingExport(a, { ...request, requestId: proposal.requestId, include: [rice.id] }, deps)
+    const sent = send.mock.calls[0]![0].needs
+    expect(sent.items.map((item) => [item.name, item.needed])).toEqual([
+      ['Basmatirijst', 300],
+      ['Ui', 1],
+    ])
+    expect(sent.staples).toEqual([])
+    expect(sent.text).not.toContain('Basisvoorraad (niet toegevoegd)')
+  })
+
   test('AH kijkt zelf wat al op de lijst staat: herhalen mag zonder herhaalkeuze, maar niet tijdens een lopende export', async () => {
     const { a, input, deps, send, check } = await setup()
     await saveAhConnection(a, { connectionId: crypto.randomUUID(), connectionKey: 'k'.repeat(43) }, SECRET)

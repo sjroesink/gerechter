@@ -35,6 +35,8 @@ export const shoppingExportInput = z
     allowRepeat: z.boolean().default(false),
     /** Ingredient ids from the proposal's items to leave off this export. */
     skip: z.array(z.string().min(1).max(100)).max(500).default([]),
+    /** Ingredient ids from the proposal's basic-supply items to add to this export anyway. */
+    include: z.array(z.string().min(1).max(100)).max(500).default([]),
   })
   .strict()
 export const shareOutcomeInput = z
@@ -353,9 +355,10 @@ export async function startShoppingExport(
         'De behoefte is gewijzigd. Open een actueel boodschappenvoorstel voordat je exporteert.',
       )
     // The fingerprint guards the proposal the member saw; the snapshot holds only what is sent.
-    const needs = data.skip.length
-      ? await calculateShoppingNeeds(txCtx, data.source, { skip: data.skip })
-      : proposal
+    const needs =
+      data.skip.length || data.include.length
+        ? await calculateShoppingNeeds(txCtx, data.source, { skip: data.skip, include: data.include })
+        : proposal
     if (!needs.lines.length) throw new Invalid('Er zijn geen boodschappen om te exporteren.')
     const targetKey = targetKeyFor(data.target, connection?.destinationId)
     const overlaps = await tx

@@ -33,11 +33,14 @@ export const shoppingSourceInput = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('week'), date: calendarDateInput }).strict(),
 ])
 const number = new Intl.NumberFormat('nl-NL', { maximumSignificantDigits: 8 })
-/** `skip` leaves those items to buy off this calculation; unknown ids are refused. */
+/**
+ * `skip` leaves those items to buy off this calculation; `include` adds those basic-supply items anyway.
+ * Ids that are not an item or basic-supply item of this proposal are refused.
+ */
 export async function calculateShoppingNeeds(
   ctx: Ctx,
   input: z.input<typeof shoppingSourceInput>,
-  options: { skip?: readonly string[] } = {},
+  options: { skip?: readonly string[]; include?: readonly string[] } = {},
 ): Promise<ShoppingNeeds> {
   const data = parseInput(shoppingSourceInput, input)
   const source: ShoppingSource =
@@ -120,7 +123,11 @@ export async function calculateShoppingNeeds(
       needed: Math.max(0, line.required - stock.quantity),
       pantryVersion: stock.version,
     }
-    if (stock.staple) staples.push(result)
+    // A basic-supply item that is added anyway buys what the recipes need, even when stock is counted.
+    if (stock.staple)
+      staples.push(
+        result.needed > 0 || result.unknown.length ? result : { ...result, needed: result.required },
+      )
     else if (result.needed > 0 || result.unknown.length > 0) items.push(result)
     else covered.push(result)
   }
@@ -128,6 +135,15 @@ export async function calculateShoppingNeeds(
   const skipped = items.filter((item) => skip.has(item.ingredientId))
   if (skipped.length !== skip.size) throw new Invalid('Een overgeslagen item hoort niet bij dit voorstel.')
   if (skipped.length) items.splice(0, items.length, ...items.filter((item) => !skip.has(item.ingredientId)))
+  const include = new Set(options.include)
+  const included = staples.filter((item) => include.has(item.ingredientId))
+  if (included.length !== include.size)
+    throw new Invalid('Een toegevoegd item hoort niet bij de basisvoorraad van dit voorstel.')
+  if (included.length) {
+    staples.splice(0, staples.length, ...staples.filter((item) => !include.has(item.ingredientId)))
+    items.push(...included)
+    items.sort((a, b) => a.name.localeCompare(b.name, 'nl') || a.ingredientId.localeCompare(b.ingredientId))
+  }
   const textLines = (item: ShoppingLine) => [
     ...(item.needed > 0 ? [`${number.format(item.needed)} ${item.baseUnit} · ${item.name}`] : []),
     ...item.unknown.map(
@@ -149,7 +165,7 @@ export async function calculateShoppingNeeds(
   }
   const links = await getAhProductLinks(
     ctx,
-    items.map((item) => item.ingredientId),
+    [...items, ...staples].map((item) => item.ingredientId),
   )
   const ahProducts = new Map<string, AhLineProduct>()
   const ahItems: AhExportItem[] = []
@@ -222,7 +238,11 @@ export async function calculateShoppingNeeds(
       ...line,
       ahProduct: ahProducts.get(line.ingredientId) ?? null,
     })),
-    staples: withPhotos(staples),
+    // Shown so a member can see what adding a basic-supply item would send; outside the fingerprint.
+    staples: withPhotos(staples).map((line) => {
+      const link = links.get(line.ingredientId)
+      return { ...line, ahProduct: link ? { ...link, ...ahQuantity(line, link.packAmount) } : null }
+    }),
     covered: withPhotos(covered),
     text,
     fingerprint,

@@ -164,3 +164,10 @@ Bij koppelen met afbeelding SHALL die afbeelding de ingrediëntfoto worden, met 
 #### Scenario: Eigen foto blijft
 - **WHEN** het ingrediënt al een zelf gekozen foto heeft
 - **THEN** blijft die foto staan na het koppelen
+
+### Requirement: Basisvoorraad alsnog meenemen
+Bij exporteren SHALL een lid per basisvoorraad-ingrediënt kunnen kiezen het toch mee te nemen; standaard MUST basisvoorraad buiten de export blijven. Een meegenomen item SHALL de berekende hoeveelheid krijgen, of de receptmaat als de getelde voorraad die al dekt, en zijn gekoppelde AH-product. Een id dat geen basisvoorraad van het voorstel is MUST worden geweigerd.
+
+#### Scenario: Rijst toch kopen
+- **WHEN** een lid bij basisvoorraad Basmatirijst aanvinkt en exporteert
+- **THEN** staat Basmatirijst met de receptmaat op de lijst en niet meer onder basisvoorraad

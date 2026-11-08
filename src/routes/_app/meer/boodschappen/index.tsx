@@ -18,7 +18,7 @@ import {
   groupRowClass,
 } from '~/components/ui'
 import { isCalendarDate, shiftDate, todayAmsterdam } from '~/domain/calendar'
-import type { ShoppingSource } from '~/domain/shopping-types'
+import type { ShoppingLine, ShoppingSource } from '~/domain/shopping-types'
 import { getShoppingPage, startShoppingExportFn } from '~/server/shopping.functions'
 
 export const Route = createFileRoute('/_app/meer/boodschappen/')({
@@ -65,8 +65,9 @@ function ShoppingPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [repeat, setRepeat] = useState(false)
-  // Unchecked items belong to one proposal; a new fingerprint starts with everything checked again.
-  const [skip, setSkip] = useState<{ fingerprint: string; ids: Set<string> } | null>(null)
+  // Choices belong to one proposal; a new fingerprint starts again with every item to buy checked and
+  // every basic-supply item unchecked.
+  const [choice, setChoice] = useState<{ fingerprint: string; ids: Set<string> } | null>(null)
   // With exactly one connected list (Notion or AH) that list is the obvious choice.
   const [target, setTarget] = useState<Target>(() => {
     const connected = result.ok
@@ -89,13 +90,17 @@ function ShoppingPage() {
     needs?.source.kind === 'recipe' && needs.sources[0]
       ? { id: needs.source.recipeId, name: needs.sources[0].name }
       : undefined
-  const skipped = needs && skip?.fingerprint === needs.fingerprint ? skip.ids : new Set<string>()
-  const selected = (needs?.items.length ?? 0) - skipped.size
+  const toggled = needs && choice?.fingerprint === needs.fingerprint ? choice.ids : new Set<string>()
+  const pick = (lines: ShoppingLine[] | undefined) =>
+    new Set((lines ?? []).map((item) => item.ingredientId).filter((id) => toggled.has(id)))
+  const skipped = pick(needs?.items)
+  const included = pick(needs?.staples)
+  const selected = (needs?.items.length ?? 0) - skipped.size + included.size
   function toggle(ingredientId: string) {
     if (!needs) return
-    const ids = new Set(skipped)
+    const ids = new Set(toggled)
     if (!ids.delete(ingredientId)) ids.add(ingredientId)
-    setSkip({ fingerprint: needs.fingerprint, ids })
+    setChoice({ fingerprint: needs.fingerprint, ids })
   }
   const available = targets.filter((option) => option.target !== 'ah' || option.configured)
   const chosen = available.find((option) => option.target === target && option.configured)
@@ -112,6 +117,7 @@ function ShoppingPage() {
           target,
           allowRepeat: repeat,
           skip: [...skipped],
+          include: [...included],
         },
       })
       if (exported.ok)
@@ -202,9 +208,9 @@ function ShoppingPage() {
             <ShoppingNeedsView
               needs={needs}
               ah={target === 'ah' && chosen ? { onLinked: () => router.invalidate() } : undefined}
-              selection={{ skipped, toggle, disabled: busy }}
+              selection={{ skipped, included, toggle, disabled: busy }}
             />
-            {needs.lines.length > 0 && (
+            {(needs.lines.length > 0 || needs.staples.length > 0) && (
               <section className="flex flex-col gap-2.5" aria-label="Waarheen?">
                 <SectionTitle>Waarheen?</SectionTitle>
                 <div className="flex flex-col gap-2">
@@ -310,11 +316,15 @@ function ShoppingPage() {
             detail="Notion en Albert Heijn koppelen"
           />
         </ListGroup>
-        {needs && needs.lines.length > 0 && (
+        {needs && (needs.lines.length > 0 || needs.staples.length > 0) && (
           <ActionBar>
             <p className="text-center text-sm text-ink-2">
-              {skipped.size
-                ? `${selected} van ${needs.items.length} items · ${skipped.size} al in huis`
+              {skipped.size || included.size
+                ? [
+                    `${selected === 1 ? '1 item' : `${selected} items`} op de lijst`,
+                    ...(skipped.size ? [`${skipped.size} al in huis`] : []),
+                    ...(included.size ? [`${included.size} uit basisvoorraad`] : []),
+                  ].join(' · ')
                 : `${needs.items.length === 1 ? '1 item' : `${needs.items.length} items`} na aftrek van voorraad en basisvoorraad`}
             </p>
             <Button

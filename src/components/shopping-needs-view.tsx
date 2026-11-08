@@ -9,9 +9,17 @@ const number = new Intl.NumberFormat('nl-NL', { maximumSignificantDigits: 8 })
 const listClass = 'flex flex-col overflow-hidden rounded-2xl bg-surface'
 const rowClass = 'border-b border-line-soft px-4 py-3 break-words last:border-b-0'
 
+type Selection = {
+  skipped: ReadonlySet<string>
+  included: ReadonlySet<string>
+  toggle: (ingredientId: string) => void
+  disabled?: boolean
+}
+
 /**
  * With `ah`, each item to buy shows its linked AH product and pack count, or a way to link one.
- * With `selection`, each item to buy gets a checkbox; unchecked items stay off this export.
+ * With `selection`, each item to buy gets a checkbox; unchecked items stay off this export. Basic-supply
+ * items get one too, unchecked: checking one adds it to this export anyway.
  */
 export function ShoppingNeedsView({
   needs,
@@ -20,9 +28,29 @@ export function ShoppingNeedsView({
 }: {
   needs: ShoppingNeeds
   ah?: { onLinked: () => void | Promise<void> }
-  selection?: { skipped: ReadonlySet<string>; toggle: (ingredientId: string) => void; disabled?: boolean }
+  selection?: Selection
 }) {
   const [picking, setPicking] = useState<string | null>(null)
+  const row = (item: ShoppingLine, checked: boolean, idle: string) => (
+    <NeedRow
+      key={item.ingredientId}
+      item={item}
+      checked={checked}
+      idle={idle}
+      selection={selection}
+      ah={
+        ah && {
+          picking: picking === item.ingredientId,
+          pick: () => setPicking(item.ingredientId),
+          cancel: () => setPicking(null),
+          saved: async () => {
+            setPicking(null)
+            await ah.onLinked()
+          },
+        }
+      }
+    />
+  )
   return (
     <>
       <Group label="Te kopen">
@@ -30,93 +58,32 @@ export function ShoppingNeedsView({
           <Notice>Geen boodschappen nodig voor deze selectie.</Notice>
         ) : (
           <ul className={listClass}>
-            {needs.items.map((item) => {
-              const skipped = selection?.skipped.has(item.ingredientId) ?? false
-              return (
-                <li key={item.ingredientId} className={rowClass}>
-                  <div className="flex items-center gap-3">
-                    {selection && (
-                      <label className="relative -my-1 -ml-2.5 -mr-1 flex size-11 shrink-0 cursor-pointer items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={!skipped}
-                          disabled={selection.disabled}
-                          onChange={() => selection.toggle(item.ingredientId)}
-                          aria-label={`${item.name} op de lijst zetten`}
-                          className="peer absolute inset-0 cursor-pointer opacity-0 disabled:cursor-default"
-                        />
-                        <span
-                          aria-hidden="true"
-                          className="flex size-6 items-center justify-center rounded-md border-2 border-line bg-surface text-transparent peer-checked:border-tomato peer-checked:bg-tomato peer-checked:text-surface peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-tomato peer-disabled:opacity-60"
-                        >
-                          <CheckIcon size={16} strokeWidth={3} />
-                        </span>
-                      </label>
-                    )}
-                    <IngredientAvatar photo={item.photo} name={item.name} />
-                    <div className={cx('min-w-0 flex-1', skipped && 'opacity-55')}>
-                      <div className="flex items-baseline justify-between gap-3">
-                        <h3 className="min-w-0 font-semibold break-words">{item.name}</h3>
-                        {item.needed > 0 && (
-                          <span className="shrink-0 font-bold text-tomato-dark tabular-nums">
-                            {number.format(item.needed)} {item.baseUnit}
-                            <span className="sr-only"> te kopen</span>
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[13px] text-ink-3">
-                        {skipped
-                          ? 'Al in huis · gaat niet mee'
-                          : `Nodig: ${number.format(item.required)} ${item.baseUnit} · in huis: ${number.format(item.available)} ${item.baseUnit}`}
-                      </p>
-                    </div>
-                  </div>
-                  {!skipped && (item.unknown.length > 0 || ah) && (
-                    <div className="mt-2 flex flex-col gap-2">
-                      {item.unknown.map((line, index) => (
-                        <p
-                          key={index}
-                          className="rounded-xl bg-amber-soft px-3 py-2 text-[13px] text-amber-ink"
-                        >
-                          {line.quantity === null
-                            ? 'Naar smaak'
-                            : `${number.format(line.quantity)} ${line.unit}`}{' '}
-                          · {line.reason}. Controleer dit zelf; er is geen hoeveelheid geraden.
-                          {line.note ? ` ${line.note}` : ''}
-                        </p>
-                      ))}
-                      {ah &&
-                        (picking === item.ingredientId ? (
-                          <AhProductPicker
-                            ingredientId={item.ingredientId}
-                            ingredientName={item.name}
-                            baseUnit={item.baseUnit}
-                            onCancel={() => setPicking(null)}
-                            onSaved={async () => {
-                              setPicking(null)
-                              await ah.onLinked()
-                            }}
-                          />
-                        ) : (
-                          <AhLine item={item} pick={() => setPicking(item.ingredientId)} />
-                        ))}
-                    </div>
-                  )}
-                </li>
-              )
-            })}
+            {needs.items.map((item) =>
+              row(item, !selection?.skipped.has(item.ingredientId), 'Al in huis · gaat niet mee'),
+            )}
           </ul>
         )}
       </Group>
       {needs.staples.length > 0 && (
-        <Group label="Basisvoorraad uitgesloten" title="Basisvoorraad · niet toegevoegd">
+        <Group
+          label="Basisvoorraad uitgesloten"
+          title={selection ? 'Basisvoorraad' : 'Basisvoorraad · niet toegevoegd'}
+        >
           <ul className={listClass}>
-            {needs.staples.map((item) => (
-              <li key={item.ingredientId} className={`flex items-center gap-3 ${rowClass}`}>
-                <IngredientAvatar photo={item.photo} name={item.name} />
-                <span className="min-w-0 flex-1">{item.name} · altijd in huis</span>
-              </li>
-            ))}
+            {selection
+              ? needs.staples.map((item) =>
+                  row(
+                    item,
+                    selection.included.has(item.ingredientId),
+                    'Altijd in huis · vink aan om toch te kopen',
+                  ),
+                )
+              : needs.staples.map((item) => (
+                  <li key={item.ingredientId} className={`flex items-center gap-3 ${rowClass}`}>
+                    <IngredientAvatar photo={item.photo} name={item.name} />
+                    <span className="min-w-0 flex-1">{item.name} · altijd in huis</span>
+                  </li>
+                ))}
           </ul>
         </Group>
       )}
@@ -147,6 +114,86 @@ export function ShoppingNeedsView({
         </Group>
       )}
     </>
+  )
+}
+
+/** An ingredient with its amount, notes and AH product; unchecked it collapses to `idle`. */
+function NeedRow({
+  item,
+  checked,
+  idle,
+  selection,
+  ah,
+}: {
+  item: ShoppingLine
+  checked: boolean
+  idle: string
+  selection?: Selection
+  ah?: { picking: boolean; pick: () => void; cancel: () => void; saved: () => Promise<void> }
+}) {
+  return (
+    <li className={rowClass}>
+      <div className="flex items-center gap-3">
+        {selection && (
+          <label className="relative -my-1 -mr-1 -ml-2.5 flex size-11 shrink-0 cursor-pointer items-center justify-center">
+            <input
+              type="checkbox"
+              checked={checked}
+              disabled={selection.disabled}
+              onChange={() => selection.toggle(item.ingredientId)}
+              aria-label={`${item.name} op de lijst zetten`}
+              className="peer absolute inset-0 cursor-pointer opacity-0 disabled:cursor-default"
+            />
+            <span
+              aria-hidden="true"
+              className="flex size-6 items-center justify-center rounded-md border-2 border-line bg-surface text-transparent peer-checked:border-tomato peer-checked:bg-tomato peer-checked:text-surface peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-tomato peer-disabled:opacity-60"
+            >
+              <CheckIcon size={16} strokeWidth={3} />
+            </span>
+          </label>
+        )}
+        <IngredientAvatar photo={item.photo} name={item.name} />
+        <div className={cx('min-w-0 flex-1', !checked && 'opacity-55')}>
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="min-w-0 font-semibold break-words">{item.name}</h3>
+            {checked && item.needed > 0 && (
+              <span className="shrink-0 font-bold text-tomato-dark tabular-nums">
+                {number.format(item.needed)} {item.baseUnit}
+                <span className="sr-only"> te kopen</span>
+              </span>
+            )}
+          </div>
+          <p className="text-[13px] text-ink-3">
+            {checked
+              ? `Nodig: ${number.format(item.required)} ${item.baseUnit} · in huis: ${number.format(item.available)} ${item.baseUnit}`
+              : idle}
+          </p>
+        </div>
+      </div>
+      {checked && (item.unknown.length > 0 || ah) && (
+        <div className="mt-2 flex flex-col gap-2">
+          {item.unknown.map((line, index) => (
+            <p key={index} className="rounded-xl bg-amber-soft px-3 py-2 text-[13px] text-amber-ink">
+              {line.quantity === null ? 'Naar smaak' : `${number.format(line.quantity)} ${line.unit}`} ·{' '}
+              {line.reason}. Controleer dit zelf; er is geen hoeveelheid geraden.
+              {line.note ? ` ${line.note}` : ''}
+            </p>
+          ))}
+          {ah &&
+            (ah.picking ? (
+              <AhProductPicker
+                ingredientId={item.ingredientId}
+                ingredientName={item.name}
+                baseUnit={item.baseUnit}
+                onCancel={ah.cancel}
+                onSaved={ah.saved}
+              />
+            ) : (
+              <AhLine item={item} pick={ah.pick} />
+            ))}
+        </div>
+      )}
+    </li>
   )
 }
 
