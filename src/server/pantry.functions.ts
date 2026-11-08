@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { getIngredient } from '~/domain/catalog'
+import { getAhProductLink } from '~/domain/ah-products'
 import {
   getPantryHistory,
   getPantryItem,
@@ -26,6 +27,7 @@ export const getPantryDetail = createServerFn({ method: 'GET' })
       return {
         item: await getPantryItem(ctx, data.ingredientId),
         ingredient: { aliases, scope, conversions },
+        ahProduct: await getAhProductLink(ctx, data.ingredientId),
         history: await getPantryHistory(ctx, data.ingredientId),
       }
     }),

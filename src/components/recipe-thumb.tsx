@@ -15,6 +15,10 @@ export function RecipeThumb({
   if (photoUrl && failed !== photoUrl)
     return (
       <img
+        ref={(image) => {
+          // An SSR image can fail before hydration attaches React's onError handler.
+          if (image?.complete && image.naturalWidth === 0) setFailed(photoUrl)
+        }}
         src={photoUrl}
         alt=""
         loading="lazy"

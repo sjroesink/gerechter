@@ -124,7 +124,7 @@ function IngredientPage() {
           </>
         )}
         {item.ah && (
-          <section className="flex flex-col gap-3" aria-label="AH-product">
+          <section id="ah-product" className="flex scroll-mt-24 flex-col gap-3" aria-label="AH-product">
             <SectionTitle>AH-product</SectionTitle>
             <p className="px-1 text-[15px] text-ink-2">
               Met een gekoppeld product zet een AH-export dit product met het juiste aantal op je lijst, in
@@ -171,6 +171,12 @@ function IngredientPage() {
                 }}
               />
             )}
+          </section>
+        )}
+        {!item.ah && (
+          <section id="ah-product" className="flex scroll-mt-24 flex-col gap-3" aria-label="AH-product">
+            <SectionTitle>AH-product</SectionTitle>
+            <Notice>AH is niet ingeschakeld voor deze installatie. Je voorraad blijft ongewijzigd.</Notice>
           </section>
         )}
         <section className="flex flex-col gap-3">

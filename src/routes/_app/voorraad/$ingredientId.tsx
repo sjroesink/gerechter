@@ -2,6 +2,7 @@ import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { ChevronRightIcon } from '~/components/icons'
 import { IngredientHeader } from '~/components/ingredient-header'
+import { AhProductSummary } from '~/components/ah-product-picker'
 import { PantryForm } from '~/components/pantry-form'
 import { Button, DetailHeader, Notice, Page, SectionTitle } from '~/components/ui'
 import { measurementUnit } from '~/domain/units'
@@ -61,6 +62,14 @@ function PantryDetail() {
           }}
         />
         <nav aria-label="Details" className="flex flex-col overflow-hidden rounded-2xl bg-surface">
+          <Link
+            to="/meer/ingredienten/$ingredientId"
+            params={{ ingredientId: item.ingredientId }}
+            className="flex min-h-15 items-center justify-between gap-3 border-b border-line-soft px-4 py-2 font-semibold hover:bg-ground"
+          >
+            Ingrediënt bekijken
+            <ChevronRightIcon size={20} className="shrink-0 text-ink-3" />
+          </Link>
           {[
             { title: 'Eenheid', detail: unitDetail },
             ...(ingredient.aliases.length > 0
@@ -81,6 +90,29 @@ function PantryDetail() {
             </Link>
           ))}
         </nav>
+        <section aria-label="AH-product" className="flex flex-col gap-3">
+          <SectionTitle>AH-product</SectionTitle>
+          <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
+            {result.data.ahProduct ? (
+              <AhProductSummary link={result.data.ahProduct} baseUnit={item.baseUnit} />
+            ) : (
+              <p className="text-[15px] text-ink-2">Nog geen AH-product gekoppeld.</p>
+            )}
+            <Link
+              to="/meer/ingredienten/$ingredientId"
+              params={{ ingredientId: item.ingredientId }}
+              hash="ah-product"
+              className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line px-4 py-2 font-semibold hover:bg-ground"
+            >
+              {result.data.ahProduct ? 'AH-product bekijken of wijzigen' : 'AH-product koppelen'}
+              <ChevronRightIcon size={20} className="shrink-0 text-ink-3" />
+            </Link>
+            <p className="text-[13px] text-ink-3">
+              Alleen voor je huishouden. Beheer de koppeling op de ingrediëntpagina; je voorraad blijft
+              gelijk.
+            </p>
+          </div>
+        </section>
         {item.version > 0 && (item.quantity > 0 || item.staple) && (
           <Button
             variant="danger"

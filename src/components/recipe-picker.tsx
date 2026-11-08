@@ -16,7 +16,7 @@ export function RecipePicker({
   choose,
   children,
 }: {
-  choose: (choice: { id: string; name: string }) => void
+  choose: (choice: Pick<Choice, 'id' | 'name' | 'imageUrl'>) => void
   children?: ReactNode
 }) {
   const [query, setQuery] = useState('')
@@ -81,7 +81,7 @@ export function RecipePicker({
                 <li key={item.id} className="border-b border-line-soft last:border-b-0">
                   <button
                     type="button"
-                    onClick={() => choose({ id: item.id, name: item.name })}
+                    onClick={() => choose({ id: item.id, name: item.name, imageUrl: item.imageUrl })}
                     className="flex min-h-15 w-full items-center gap-3 py-2 pr-4 pl-2 text-left text-ink transition-colors hover:bg-ground"
                   >
                     {item.imageUrl ? (

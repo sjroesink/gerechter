@@ -1,3 +1,4 @@
+import { useBlocker } from '@tanstack/react-router'
 import { useId, useState, type FormEvent } from 'react'
 import type { PantryDetail } from '~/domain/pantry'
 import type { ActionResult } from '~/server/fn'
@@ -72,6 +73,25 @@ export function PantryForm({
   const [staple, setStaple] = useState(initial?.staple ?? false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [reason, setReason] = useState('count')
+  const [note, setNote] = useState('')
+  const [savedDraft, setSavedDraft] = useState({
+    amount: initial ? String(initial.quantity) : '',
+    staple: initial?.staple ?? false,
+    reason: 'count',
+    note: '',
+  })
+  const dirty =
+    amount !== savedDraft.amount ||
+    staple !== savedDraft.staple ||
+    reason !== savedDraft.reason ||
+    note !== savedDraft.note
+  useBlocker({
+    disabled: !initial || !dirty,
+    enableBeforeUnload: dirty,
+    shouldBlockFn: () =>
+      !window.confirm('Niet-opgeslagen voorraadwijzigingen gaan verloren. Toch verdergaan?'),
+  })
   const quantity = Number(amount) || 0
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -94,8 +114,10 @@ export function PantryForm({
           note: String(form.get('note') ?? ''),
         },
       })
-      if (result.ok) await saved(result.data)
-      else setError(result.message)
+      if (result.ok) {
+        setSavedDraft({ amount, staple, reason, note })
+        await saved(result.data)
+      } else setError(result.message)
     } catch {
       setError('Opslaan is niet gelukt. Controleer je verbinding en probeer opnieuw.')
     } finally {
@@ -185,6 +207,8 @@ export function PantryForm({
                 <span className="text-[15px] font-semibold">Reden</span>
                 <select
                   name="reason"
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
                   className="min-h-12 rounded-2xl border border-line bg-surface px-4 text-base text-ink"
                 >
                   <option value="count">Nieuwe telling</option>
@@ -194,6 +218,8 @@ export function PantryForm({
               <Field
                 label="Notitie"
                 name="note"
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
                 maxLength={1000}
                 placeholder="Bijvoorbeeld na boodschappen of opruimen"
               />

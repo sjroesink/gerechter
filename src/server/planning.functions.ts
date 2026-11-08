@@ -39,7 +39,7 @@ export const getNewPlanPage = createServerFn({ method: 'GET' })
       return {
         date: data.date ?? todayAmsterdam(),
         preferences: await getHouseholdPreferences(ctx),
-        recipe: recipe ? { id: recipe.id, name: recipe.name } : undefined,
+        recipe: recipe ? { id: recipe.id, name: recipe.name, imageUrl: recipe.imageUrl } : undefined,
       }
     }),
   )

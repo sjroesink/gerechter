@@ -3,6 +3,7 @@ import type { PlannedMealDetail, PlannedMealInput } from '~/domain/planning'
 import type { ActionResult } from '~/server/fn'
 import { PlusIcon } from './icons'
 import { RecipePicker } from './recipe-picker'
+import { RecipeThumb } from './recipe-thumb'
 import { ActionBar, Button, Field, Notice, SectionTitle, Stepper, chipClass, cx } from './ui'
 
 const presets = ['Bestellen', 'Uit eten', 'Restjes']
@@ -17,14 +18,16 @@ export function PlannedMealForm({
   initial?: PlannedMealDetail
   date: string
   defaultServings: number
-  selectedRecipe?: { id: string; name: string }
+  selectedRecipe?: { id: string; name: string; imageUrl?: string | null }
   save: (input: PlannedMealInput) => Promise<ActionResult<unknown>>
 }) {
   const [kind, setKind] = useState<'recipe' | 'free' | null>(
     initial?.kind ?? (selectedRecipe ? 'recipe' : null),
   )
-  const [recipe, setRecipe] = useState(
-    initial?.recipeId ? { id: initial.recipeId, name: initial.title } : selectedRecipe,
+  const [recipe, setRecipe] = useState<{ id: string; name: string; imageUrl?: string | null } | undefined>(
+    initial?.recipeId
+      ? { id: initial.recipeId, name: initial.title, imageUrl: initial.recipe?.imageUrl ?? null }
+      : selectedRecipe,
   )
   const [title, setTitle] = useState(initial?.kind === 'free' ? initial.title : '')
   const [servings, setServings] = useState<number | null>(initial?.servings ?? null)
@@ -102,9 +105,16 @@ export function PlannedMealForm({
         ) : (
           <section aria-label="Gekozen maaltijd" className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
             {kind === 'recipe' ? (
-              <div className="flex min-w-0 flex-col">
-                <span className="text-[13px] text-ink-3">Gerecht</span>
-                <span className="text-[17px] font-semibold break-words">{recipe?.name}</span>
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="block text-[13px] text-ink-3">Gerecht</span>
+                  <span className="block text-[17px] font-semibold break-words">{recipe?.name}</span>
+                </div>
+                <RecipeThumb
+                  name={recipe?.name ?? ''}
+                  photoUrl={recipe?.imageUrl ?? null}
+                  className="size-18 rounded-xl text-[26px]"
+                />
               </div>
             ) : (
               <Field
