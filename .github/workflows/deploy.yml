@@ -47,22 +47,32 @@ jobs:
           pnpm lint
           pnpm test
           pnpm build
-      - name: Production browser regression with isolated database
+      - name: Production browser regression with isolated database and AH transport fixture
+        env:
+          E2E_ADMIN_DATABASE_URL: postgres://gerechter:gerechter@localhost:5432/gerechter
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/gerechter-uv"
+          "$RUNNER_TEMP/gerechter-uv/bin/pip" install uv==0.12.3
+          export PATH="$RUNNER_TEMP/gerechter-uv/bin:$PATH"
+          uv sync --frozen --project sidecar
+          pnpm exec playwright install --with-deps chromium
+          # Playwright owns the production server and the isolated ASGI/mock-AH service.
+          # Do not set E2E_BASE_URL: external mode deliberately skips AH transport tests.
+          pnpm test:e2e
+      - name: Production browser regression without AH configuration
         env:
           E2E_BASE_URL: http://localhost:3100
           E2E_DATABASE_URL: postgres://gerechter:gerechter@localhost:5432/gerechter_e2e
-          E2E_ADMIN_DATABASE_URL: postgres://gerechter:gerechter@localhost:5432/gerechter
-          E2E_ADMIN_EMAIL: beheer@e2e.test
+          E2E_AH_DISABLED: '1'
           DATABASE_URL: postgres://gerechter:gerechter@localhost:5432/gerechter_e2e
           PUBLIC_BASE_URL: http://localhost:3100
-          BETTER_AUTH_SECRET: ci-fixture-only-not-a-production-secret-0000
+          BETTER_AUTH_SECRET: e2e-secret-e2e-secret-e2e-secret-0000
           ADMIN_EMAIL: beheer@e2e.test
           PORT: '3100'
         run: |
           set -euo pipefail
-          pnpm exec playwright install --with-deps chromium
-          node e2e/prepare-db.mjs
-          node scripts/start.mjs > "$RUNNER_TEMP/gerechter-e2e-server.log" 2>&1 &
+          node scripts/start.mjs > "$RUNNER_TEMP/gerechter-e2e-no-ah-server.log" 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           ready=false
@@ -72,8 +82,7 @@ jobs:
             sleep 1
           done
           test "$ready" = true
-          # External test mode skips optional live AH integration. No real provider account is used.
-          pnpm test:e2e
+          pnpm exec playwright test 15-pantry-ah -g niet-ingeschakelde
       - name: Verify production Docker build
         run: docker build --tag gerechter:ci .
       - name: Trigger authenticated Unraid deployment
