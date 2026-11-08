@@ -47,7 +47,7 @@ test('eigenaar koppelt AH en exporteert via de echte sidecar met gecontroleerd A
 
 test('AH-product koppelen vanuit boodschappen en ingrediëntpagina; export stuurt het product', async ({
   page,
-}) => {
+}, testInfo) => {
   await login(page, admin.email)
   await page.goto('/week/dag/2027-01-05')
   await page.getByRole('link', { name: 'Op lijst zetten', exact: true }).click()
@@ -99,6 +99,8 @@ test('AH-product koppelen vanuit boodschappen en ingrediëntpagina; export stuur
   await page.getByRole('button', { name: /^Albert Heijn/ }).click()
   await expect(toBuy).toContainText('1× AH Trostomaten')
   await expect(toBuy).toContainText('aantal controleren')
+  await expectMobileLayout(page)
+  await toBuy.screenshot({ path: testInfo.outputPath('ah-needs.png') })
   await page.goto('/meer/ingredienten')
   await page.getByLabel('Zoek ingrediënten').fill('tomaat in blik')
   await page.getByLabel('Zoek ingrediënten').press('Enter')
