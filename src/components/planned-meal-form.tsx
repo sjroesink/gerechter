@@ -1,10 +1,11 @@
+import { Link } from '@tanstack/react-router'
 import { useState, type FormEvent } from 'react'
 import type { PlannedMealDetail, PlannedMealInput } from '~/domain/planning'
 import type { ActionResult } from '~/server/fn'
-import { PlusIcon } from './icons'
+import { ChevronRightIcon, PlusIcon } from './icons'
 import { RecipePicker } from './recipe-picker'
 import { RecipeThumb } from './recipe-thumb'
-import { ActionBar, Button, Field, Notice, SectionTitle, Stepper, chipClass, cx } from './ui'
+import { ActionBar, Button, Field, Notice, SectionTitle, Stepper, buttonClass, chipClass, cx } from './ui'
 
 const presets = ['Bestellen', 'Uit eten', 'Restjes']
 
@@ -14,12 +15,15 @@ export function PlannedMealForm({
   defaultServings,
   selectedRecipe,
   save,
+  onChooseRecipe,
 }: {
   initial?: PlannedMealDetail
   date: string
   defaultServings: number
   selectedRecipe?: { id: string; name: string; imageUrl?: string | null }
   save: (input: PlannedMealInput) => Promise<ActionResult<unknown>>
+  /** Laat de pagina de keuze onthouden, zodat die na "Bekijk recept" en terug nog staat. */
+  onChooseRecipe?: (recipeId: string) => void
 }) {
   const [kind, setKind] = useState<'recipe' | 'free' | null>(
     initial?.kind ?? (selectedRecipe ? 'recipe' : null),
@@ -71,6 +75,7 @@ export function PlannedMealForm({
               setKind('recipe')
               setRecipe(choice)
               setPicking(false)
+              onChooseRecipe?.(choice.id)
             }}
           >
             <section className="flex flex-col gap-2.5" aria-label="Geen gerecht">
@@ -128,9 +133,21 @@ export function PlannedMealForm({
                 placeholder="Bijvoorbeeld Restjes of Bestellen"
               />
             )}
-            <Button variant="secondary" className="self-start" onClick={() => setPicking(true)}>
-              Iets anders kiezen
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => setPicking(true)}>
+                Iets anders kiezen
+              </Button>
+              {kind === 'recipe' && recipe && (
+                <Link
+                  to="/gerechten/$recipeId"
+                  params={{ recipeId: recipe.id }}
+                  className={buttonClass('ghost', 'px-3')}
+                >
+                  Bekijk recept
+                  <ChevronRightIcon size={18} />
+                </Link>
+              )}
+            </div>
           </section>
         )}
         <section className="flex flex-col gap-2.5" aria-label="Details">

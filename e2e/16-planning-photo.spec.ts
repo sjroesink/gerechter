@@ -96,6 +96,8 @@ test('een opgeslagen maaltijd behoudt de foto en gegevens in het bewerkformulier
     .getByRole('textbox', { name: 'Notitie bij maaltijd', exact: true })
     .fill('Fotofixture maaltijdnotitie')
   await page.getByRole('button', { name: 'Maaltijd opslaan', exact: true }).click()
+  await expect(page).toHaveURL(/\/week\?week=2027-01-08$/)
+  await page.getByRole('link', { name: title }).click()
   await expect(page).toHaveURL(/\/week\/maaltijd\/[^/?]+$/)
   const path = new URL(page.url()).pathname
   await page.goto(`${path}/bewerken`)

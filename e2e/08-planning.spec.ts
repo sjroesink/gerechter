@@ -18,11 +18,22 @@ test('weekplanning: gerecht en vrije tekst plannen, verplaatsen, porties en verw
   await expectMobileLayout(page)
   await page.getByLabel('Gerecht zoeken').fill('Tomatensoep')
   await page.getByRole('button', { name: /^Tomatensoep uit eigen keuken/ }).click()
+  // Vanuit de keuze naar het recept en terug: de keuze blijft staan.
+  await page.getByRole('link', { name: 'Bekijk recept', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Tomatensoep uit eigen keuken', level: 1 })).toBeVisible()
+  await page.goBack()
+  await expect(page.getByRole('region', { name: 'Gekozen maaltijd' })).toContainText(
+    'Tomatensoep uit eigen keuken',
+  )
+  await expect(page.getByLabel('Datum', { exact: true })).toHaveValue('2027-01-01')
   await page.getByRole('button', { name: 'Meer personen', exact: true }).click()
   await expect(page.getByText('Vast aantal voor deze maaltijd', { exact: true })).toBeVisible()
   await page.getByLabel('Notitie bij maaltijd').fill('Met z’n drieën eten')
   await expectMobileLayout(page)
   await page.getByRole('button', { name: 'Maaltijd opslaan', exact: true }).click()
+  // Na toevoegen terug naar de weekplanning van die datum.
+  await expect(page).toHaveURL(/\/week\?week=2027-01-01$/)
+  await page.getByRole('link', { name: /Tomatensoep uit eigen keuken/ }).click()
   await expect(page.getByRole('heading', { name: 'Tomatensoep uit eigen keuken', level: 2 })).toBeVisible()
   mealPath = new URL(page.url()).pathname
   await expect(page.getByRole('region', { name: 'Ingrediënten geplande maaltijd' })).toContainText('1,5 blik')
@@ -45,6 +56,10 @@ test('weekplanning: gerecht en vrije tekst plannen, verplaatsen, porties en verw
   await page.getByLabel('Notitie bij maaltijd').fill('Uit de koelkast')
   await expectMobileLayout(page)
   await page.getByRole('button', { name: 'Maaltijd opslaan', exact: true }).click()
+  await expect(page).toHaveURL(/\/week\?week=2027-01-04$/)
+  await page.getByRole('link', { name: /Restjes/ }).click()
+  await expect(page).toHaveURL(/\/week\/dag\/2027-01-04$/)
+  await page.getByRole('link', { name: /Restjes/ }).click()
   await expect(page.getByRole('heading', { name: 'Restjes', level: 2 })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Ingrediënten geplande maaltijd' })).toHaveCount(0)
   await page.getByRole('link', { name: 'Terug naar dagplanning' }).click()

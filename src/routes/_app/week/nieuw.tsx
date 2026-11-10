@@ -35,10 +35,16 @@ function NewMealPage() {
             date={result.data.date}
             selectedRecipe={result.data.recipe}
             defaultServings={result.data.preferences.defaultServings}
+            onChooseRecipe={(recipeId) =>
+              void navigate({
+                search: { date: result.data.date, recipeId },
+                replace: true,
+                resetScroll: false,
+              })
+            }
             save={async (input) => {
               const saved = await createPlannedMealFn({ data: input })
-              if (saved.ok)
-                await navigate({ to: '/week/maaltijd/$mealId', params: { mealId: saved.data.id } })
+              if (saved.ok) await navigate({ to: '/week', search: { week: input.date } })
               return saved
             }}
           />
