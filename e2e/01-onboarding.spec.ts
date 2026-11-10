@@ -19,7 +19,7 @@ test('setup weigert een ander e-mailadres en maakt daarna de beheerder aan', asy
   await page.goto('/setup')
   await page.getByLabel('Naam').fill(admin.name)
   await page.getByLabel('E-mailadres').fill('iemand@e2e.test')
-  await page.getByLabel('Wachtwoord').fill(PASSWORD)
+  await page.getByLabel('Wachtwoord', { exact: true }).fill(PASSWORD)
   await page.getByRole('button', { name: 'Account aanmaken' }).click()
   await expect(page.getByRole('alert')).toContainText('beheerdersadres')
 
@@ -130,7 +130,7 @@ test('ongeldige inloggegevens geven een algemene melding', async ({ page }) => {
   await page.goto('/login')
   await expectMobileLayout(page)
   await page.getByLabel('E-mailadres').fill('onbekend@e2e.test')
-  await page.getByLabel('Wachtwoord').fill('verkeerd-wachtwoord')
+  await page.getByLabel('Wachtwoord', { exact: true }).fill('verkeerd-wachtwoord')
   await page.getByRole('button', { name: 'Inloggen' }).click()
   await expect(page.getByRole('alert')).toHaveText(
     'Inloggen is niet gelukt. Controleer je e-mailadres en wachtwoord.',

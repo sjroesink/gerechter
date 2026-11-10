@@ -33,7 +33,7 @@ export async function submitLogin(page: Page, email: string, password = PASSWORD
   await page.locator('html[data-hydrated]').waitFor({ state: 'attached' })
   for (let attempt = 0; attempt < 4; attempt++) {
     await page.getByLabel('E-mailadres').fill(email)
-    await page.getByLabel('Wachtwoord').fill(password)
+    await page.getByLabel('Wachtwoord', { exact: true }).fill(password)
     await page.getByRole('button', { name: 'Inloggen' }).click()
     // Pollen in plaats van waitForURL: de OAuth-flow loopt via tussenliggende redirects.
     const deadline = Date.now() + 10_000
@@ -69,7 +69,7 @@ export async function register(page: Page, link: string, name: string, email: st
   await expectMobileLayout(page)
   await page.getByLabel('Naam').fill(name)
   await page.getByLabel('E-mailadres').fill(email)
-  await page.getByLabel('Wachtwoord').fill(PASSWORD)
+  await page.getByLabel('Wachtwoord', { exact: true }).fill(PASSWORD)
   await page.getByRole('button', { name: 'Account aanmaken' }).click()
   await expect(page).toHaveURL(/\/week$/)
 }
