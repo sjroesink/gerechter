@@ -124,8 +124,9 @@ export function Notice({
 export function Field({
   label,
   hint,
+  trailing,
   ...props
-}: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
+}: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; trailing?: ReactNode }) {
   const generatedId = useId()
   const id = props.id ?? generatedId
   const hintId = `${id}-hint`
@@ -134,14 +135,20 @@ export function Field({
       <label htmlFor={id} className="text-[15px] font-semibold">
         {label}
       </label>
-      <input
-        className="min-h-12 rounded-2xl border border-line bg-surface px-4 text-base text-ink outline-none focus:border-tomato focus:ring-2 focus:ring-tomato-soft"
-        {...props}
-        id={id}
-        aria-describedby={
-          [props['aria-describedby'], hint ? hintId : undefined].filter(Boolean).join(' ') || undefined
-        }
-      />
+      <div className="relative">
+        <input
+          className={cx(
+            'min-h-12 w-full rounded-2xl border border-line bg-surface px-4 text-base text-ink outline-none focus:border-tomato focus:ring-2 focus:ring-tomato-soft',
+            trailing != null && 'pr-12',
+          )}
+          {...props}
+          id={id}
+          aria-describedby={
+            [props['aria-describedby'], hint ? hintId : undefined].filter(Boolean).join(' ') || undefined
+          }
+        />
+        {trailing != null && <div className="absolute inset-y-0 right-0 flex items-center">{trailing}</div>}
+      </div>
       {hint && (
         <span id={hintId} className="text-[13px] text-ink-3">
           {hint}
@@ -201,7 +208,10 @@ export function AuthCard({
 }) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-5 py-10">
-      <div className="font-display text-2xl font-bold tracking-tight text-tomato">Gerechter</div>
+      <div className="flex items-center gap-3">
+        <img src="/pwa/icon-192.png" alt="" width={44} height={44} className="size-11 rounded-xl" />
+        <div className="font-display text-2xl font-bold tracking-tight text-tomato">Gerechter</div>
+      </div>
       <div className="flex flex-col gap-2">
         <h1 className="font-display text-[32px] leading-tight font-bold tracking-tight">{title}</h1>
         {intro && <div className="text-[15px] text-ink-2">{intro}</div>}

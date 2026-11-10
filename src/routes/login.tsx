@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState, type FormEvent } from 'react'
+import { EyeIcon, EyeOffIcon } from '~/components/icons'
 import { AuthCard, Button, Field, Notice } from '~/components/ui'
 import { authClient } from '~/lib/auth-client'
 import { safeRedirect } from '~/lib/redirect'
@@ -58,15 +59,19 @@ function LoginPage() {
           autoCapitalize="none"
           spellCheck={false}
           required
+          trailing={
+            <button
+              type="button"
+              className="flex size-12 items-center justify-center rounded-full text-ink-3 hover:text-ink"
+              aria-label="Wachtwoord tonen"
+              aria-controls="login-password"
+              aria-pressed={showPassword}
+              onClick={() => setShowPassword((visible) => !visible)}
+            >
+              {showPassword ? <EyeOffIcon size={20} /> : <EyeIcon size={20} />}
+            </button>
+          }
         />
-        <Button
-          variant="ghost"
-          aria-controls="login-password"
-          aria-pressed={showPassword}
-          onClick={() => setShowPassword((visible) => !visible)}
-        >
-          {showPassword ? 'Wachtwoord verbergen' : 'Wachtwoord tonen'}
-        </Button>
         <Button type="submit" disabled={busy}>
           {busy ? 'Bezig…' : 'Inloggen'}
         </Button>
