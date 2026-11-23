@@ -682,6 +682,13 @@ function DayCard({
                 key={item.id}
                 data-meal-id={item.id}
                 onDragStart={(event) => event.preventDefault()}
+                onPointerDown={(event) => onStartGesture(event, item, false)}
+                onClickCapture={(event) => {
+                  if (suppressClickRef.current) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                  }
+                }}
                 className={cx(
                   'relative overflow-hidden rounded-xl py-0.5 first:pt-0 last:pb-0 lg:py-1.5',
                   isDragging && 'opacity-35',
@@ -704,13 +711,6 @@ function DayCard({
                   style={{
                     transform: offset !== 0 ? `translate3d(${offset}px, 0, 0)` : undefined,
                     WebkitTouchCallout: 'none',
-                  }}
-                  onPointerDown={(event) => onStartGesture(event, item, false)}
-                  onClickCapture={(event) => {
-                    if (suppressClickRef.current) {
-                      event.preventDefault()
-                      event.stopPropagation()
-                    }
                   }}
                   className={cx(
                     'relative flex min-w-0 items-center gap-1 rounded-xl select-none touch-pan-y lg:block lg:cursor-grab lg:active:cursor-grabbing',
