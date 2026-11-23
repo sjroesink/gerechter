@@ -83,6 +83,7 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
   const [error, setError] = useState<string | null>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
   const [swipe, setSwipe] = useState<SwipeState | null>(null)
+  const [animateSwipeReset, setAnimateSwipeReset] = useState(false)
   const [openMenu, setOpenMenu] = useState<OpenMenu | null>(null)
   const [pendingRemove, setPendingRemove] = useState<PlanSummary | null>(null)
   const [removing, setRemoving] = useState(false)
@@ -362,6 +363,7 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
         lastOverDate = findDropDate(e.clientX, e.clientY)
         setDrag({ item, fromDate, x: e.clientX, y: e.clientY, overDate: lastOverDate })
       } else if (mode === 'swipe') {
+        setAnimateSwipeReset(false)
         const clamped = clampSwipe(dx)
         lastSwipeOffset = clamped
         setSwipe({ mealId: item.id, offset: clamped, ready: Math.abs(clamped) >= SWIPE_THRESHOLD })
@@ -389,13 +391,15 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
       const finalSwipe = lastSwipeOffset
       cleanup()
       setDrag(null)
+      const triggeredRemove = finalMode === 'swipe' && Math.abs(finalSwipe) >= SWIPE_THRESHOLD
+      setAnimateSwipeReset(finalMode === 'swipe' && !triggeredRemove)
       setSwipe(null)
       if (finalMode === 'drag') {
         markSuppressClick()
         if (dropDate && dropDate !== fromDate) void moveMeal(item, dropDate)
       } else if (finalMode === 'swipe') {
         markSuppressClick()
-        if (Math.abs(finalSwipe) >= SWIPE_THRESHOLD) openRemoveDialog(item)
+        if (triggeredRemove) openRemoveDialog(item)
       }
     }
 
@@ -446,6 +450,7 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
                 isDropTarget={isDropTarget}
                 draggingMealId={drag?.item.id ?? null}
                 swipe={swipe}
+                animateSwipeReset={animateSwipeReset}
                 openMenuMealId={openMenu?.item.id ?? null}
                 busyMeals={busyMeals}
                 suppressClickRef={suppressClickRef}
@@ -551,12 +556,13 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
           if (!removing) closeRemoveDialog()
         }}
         onClick={(event) => {
+          if (suppressClickRef.current) return
           if (event.target === dialogRef.current && !removing) closeRemoveDialog()
         }}
-        className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-line bg-surface p-6 text-ink shadow-xl backdrop:bg-black/40"
+        className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-line bg-surface p-0 text-ink shadow-xl backdrop:bg-black/40"
       >
         {pendingRemove && (
-          <>
+          <div className="p-6">
             <h2 id="remove-planned-meal-title" className="font-display text-xl font-bold">
               Uit planning verwijderen?
             </h2>
@@ -572,7 +578,7 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
                 {removing ? 'Verwijderen…' : 'Verwijderen'}
               </Button>
             </div>
-          </>
+          </div>
         )}
       </dialog>
     </>
@@ -586,6 +592,7 @@ function DayCard({
   isDropTarget,
   draggingMealId,
   swipe,
+  animateSwipeReset,
   openMenuMealId,
   busyMeals,
   suppressClickRef,
@@ -598,6 +605,7 @@ function DayCard({
   isDropTarget: boolean
   draggingMealId: string | null
   swipe: SwipeState | null
+  animateSwipeReset: boolean
   openMenuMealId: string | null
   busyMeals: Set<string>
   suppressClickRef: { current: boolean }
@@ -714,7 +722,9 @@ function DayCard({
                   }}
                   className={cx(
                     'relative flex min-w-0 items-center gap-1 rounded-xl select-none touch-pan-y lg:block lg:cursor-grab lg:active:cursor-grabbing',
-                    offset !== 0 ? 'bg-surface' : 'transition-transform duration-200 ease-out',
+                    offset !== 0
+                      ? 'bg-surface'
+                      : animateSwipeReset && 'transition-transform duration-150 ease-out',
                   )}
                 >
                   <span
