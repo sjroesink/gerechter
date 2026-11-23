@@ -98,13 +98,15 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
   // Clean up any active pointer listeners on unmount.
   useEffect(() => () => activeGestureCleanupRef.current?.(), [])
 
-  // Keep native modal dialog in sync with pendingRemove state.
-  useEffect(() => {
-    const dialog = dialogRef.current
-    if (!dialog) return
-    if (pendingRemove && !dialog.open) dialog.showModal()
-    else if (!pendingRemove && dialog.open) dialog.close()
-  }, [pendingRemove])
+  function openRemoveDialog(item: PlanSummary) {
+    setPendingRemove(item)
+    if (dialogRef.current && !dialogRef.current.open) dialogRef.current.showModal()
+  }
+
+  function closeRemoveDialog() {
+    if (dialogRef.current?.open) dialogRef.current.close()
+    setPendingRemove(null)
+  }
 
   // Close popover menu on outside click, Escape, scroll, or resize.
   useEffect(() => {
@@ -225,13 +227,13 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
     setBusyMeals((prev) => new Set(prev).add(item.id))
     try {
       const removed = await removePlannedMealFn({ data: { mealId: item.id, version: item.version } })
-      setPendingRemove(null)
+      closeRemoveDialog()
       if (!removed.ok) {
         setError(removed.message)
       }
       await router.invalidate()
     } catch {
-      setPendingRemove(null)
+      closeRemoveDialog()
       setError('Verwijderen is niet gelukt. Controleer je verbinding en probeer opnieuw.')
     } finally {
       setRemoving(false)
@@ -318,9 +320,16 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
           return
         }
         if (pointerType === 'mouse') {
-          if (!isDesktopGrid && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-            mode = 'swipe'
-            document.body.style.userSelect = 'none'
+          if (!isDesktopGrid) {
+            if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+              mode = 'swipe'
+              document.body.style.userSelect = 'none'
+            } else if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) {
+              enterDrag(e.clientX, e.clientY)
+              return
+            } else {
+              return
+            }
           } else if (dist >= 6) {
             enterDrag(e.clientX, e.clientY)
             return
@@ -386,7 +395,7 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
         if (dropDate && dropDate !== fromDate) void moveMeal(item, dropDate)
       } else if (finalMode === 'swipe') {
         markSuppressClick()
-        if (Math.abs(finalSwipe) >= SWIPE_THRESHOLD) setPendingRemove(item)
+        if (Math.abs(finalSwipe) >= SWIPE_THRESHOLD) openRemoveDialog(item)
       }
     }
 
@@ -525,7 +534,7 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
             onClick={() => {
               const meal = openMenu.item
               setOpenMenu(null)
-              setPendingRemove(meal)
+              openRemoveDialog(meal)
             }}
           >
             <TrashIcon size={18} className="shrink-0" />
@@ -539,10 +548,10 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
         aria-labelledby="remove-planned-meal-title"
         onCancel={(event) => {
           event.preventDefault()
-          if (!removing) setPendingRemove(null)
+          if (!removing) closeRemoveDialog()
         }}
         onClick={(event) => {
-          if (event.target === dialogRef.current && !removing) setPendingRemove(null)
+          if (event.target === dialogRef.current && !removing) closeRemoveDialog()
         }}
         className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-line bg-surface p-6 text-ink shadow-xl backdrop:bg-black/40"
       >
@@ -556,7 +565,7 @@ export function WeekPlanBoard({ days, today }: { days: WeekDay[]; today: string 
               {formatCalendarDay(pendingRemove.date)} uit de planning wilt verwijderen?
             </p>
             <div className="mt-5 flex flex-wrap justify-end gap-2.5">
-              <Button variant="secondary" disabled={removing} onClick={() => setPendingRemove(null)}>
+              <Button variant="secondary" disabled={removing} onClick={closeRemoveDialog}>
                 Annuleren
               </Button>
               <Button variant="primary" disabled={removing} onClick={() => void confirmRemove()}>
