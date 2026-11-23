@@ -24,9 +24,13 @@ export const plannedMealUpdateInput = z.discriminatedUnion('kind', [
   plannedRecipeInput.extend({ version: z.number().int().positive() }),
   plannedFreeInput.extend({ version: z.number().int().positive() }),
 ])
+export const plannedMealMoveInput = z
+  .object({ date: calendarDateInput, version: z.number().int().positive() })
+  .strict()
 export const planDateInput = z.object({ date: calendarDateInput }).strict()
 export type PlannedMealInput = z.input<typeof plannedMealInput>
 export type PlannedMealUpdate = z.input<typeof plannedMealUpdateInput>
+export type PlannedMealMove = z.input<typeof plannedMealMoveInput>
 
 const scoped = (ctx: Ctx, id: string) =>
   and(eq(plannedMeal.id, id), eq(plannedMeal.householdId, ctx.household.id), isNull(plannedMeal.deletedAt))
@@ -67,6 +71,19 @@ export async function updatePlannedMeal(ctx: Ctx, id: string, input: PlannedMeal
   const rows = await ctx.db
     .update(plannedMeal)
     .set({ ...fields(data), version: version + 1, updatedAt: new Date() })
+    .where(and(scoped(ctx, id), eq(plannedMeal.version, version)))
+    .returning({ id: plannedMeal.id })
+  if (rows.length === 0)
+    throw new Conflict('Deze maaltijd is inmiddels gewijzigd. Open de nieuwste versie en probeer opnieuw.')
+  return getPlannedMeal(ctx, id)
+}
+export async function movePlannedMeal(ctx: Ctx, id: string, input: PlannedMealMove) {
+  const before = await find(ctx, id)
+  const { date, version } = parseInput(plannedMealMoveInput, input)
+  if (before.date === date && before.version === version) return getPlannedMeal(ctx, id)
+  const rows = await ctx.db
+    .update(plannedMeal)
+    .set({ date, version: version + 1, updatedAt: new Date() })
     .where(and(scoped(ctx, id), eq(plannedMeal.version, version)))
     .returning({ id: plannedMeal.id })
   if (rows.length === 0)

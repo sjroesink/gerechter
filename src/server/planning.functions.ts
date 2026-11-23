@@ -6,7 +6,9 @@ import {
   getDayPlan,
   getPlannedMeal,
   getWeekPlan,
+  movePlannedMeal,
   plannedMealInput,
+  plannedMealMoveInput,
   plannedMealUpdateInput,
   removePlannedMeal,
   updatePlannedMeal,
@@ -49,6 +51,9 @@ export const createPlannedMealFn = createServerFn({ method: 'POST' })
 export const updatePlannedMealFn = createServerFn({ method: 'POST' })
   .validator(z.object({ mealId: id, input: plannedMealUpdateInput }))
   .handler(({ data }) => toResult(async () => updatePlannedMeal(await sessionCtx(), data.mealId, data.input)))
+export const movePlannedMealFn = createServerFn({ method: 'POST' })
+  .validator(z.object({ mealId: id, input: plannedMealMoveInput }))
+  .handler(({ data }) => toResult(async () => movePlannedMeal(await sessionCtx(), data.mealId, data.input)))
 export const removePlannedMealFn = createServerFn({ method: 'POST' })
   .validator(z.object({ mealId: id, version: z.number().int().positive() }))
   .handler(({ data }) =>

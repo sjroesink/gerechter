@@ -10,6 +10,7 @@ import {
   getDayPlan,
   getPlannedMeal,
   getWeekPlan,
+  movePlannedMeal,
   removePlannedMeal,
   updatePlannedMeal,
 } from './planning'
@@ -190,5 +191,59 @@ describe('week- en dagplanning', () => {
     ).rejects.toThrow()
     await expect(db.insert(plannedMeal).values({ ...row, recipeId: 'onbekend' })).rejects.toThrow()
     expect((await getDayPlan(a, input.date)).items).toEqual([])
+  })
+
+  test('verplaatst een geplande maaltijd naar een andere dag met behoud van gegevens, versiebeheer en afscherming', async () => {
+    const { a, b, recipe, input } = await setup()
+    const meal = await createPlannedMeal(a, { ...input, servings: 3, note: 'Extra kruiden' })
+    const free = await createPlannedMeal(a, {
+      kind: 'free',
+      title: 'Restjes',
+      date: input.date,
+      note: 'Uit de koelkast',
+    })
+
+    const moved = await movePlannedMeal(a, meal.id, { date: '2027-01-03', version: 1 })
+    expect(moved).toMatchObject({
+      id: meal.id,
+      date: '2027-01-03',
+      version: 2,
+      servings: 3,
+      note: 'Extra kruiden',
+      recipeId: recipe.id,
+    })
+    expect((await getDayPlan(a, input.date)).items.map((item) => item.id)).toEqual([free.id])
+    expect((await getDayPlan(a, '2027-01-03')).items.map((item) => item.id)).toEqual([meal.id])
+
+    // Zelfde datum en huidige versie is een veilige no-op.
+    const same = await movePlannedMeal(a, meal.id, { date: '2027-01-03', version: 2 })
+    expect(same.version).toBe(2)
+
+    // Verouderde versie geeft conflict, ongeldige datum geeft fout, ander huishouden niet gevonden.
+    await expect(movePlannedMeal(a, meal.id, { date: '2027-01-04', version: 1 })).rejects.toBeInstanceOf(
+      Conflict,
+    )
+    await expect(movePlannedMeal(a, meal.id, { date: '2026-02-29', version: 2 })).rejects.toBeInstanceOf(
+      Invalid,
+    )
+    await expect(movePlannedMeal(b, meal.id, { date: '2027-01-04', version: 2 })).rejects.toBeInstanceOf(
+      NotFound,
+    )
+
+    // Gearchiveerd gerecht blijft verplaatsbaar met behoud van receptverwijzing.
+    await setRecipeArchived(a, recipe.id, true)
+    const movedArchived = await movePlannedMeal(a, meal.id, { date: '2027-01-04', version: 2 })
+    expect(movedArchived).toMatchObject({ date: '2027-01-04', version: 3, recipeId: recipe.id })
+    expect(movedArchived.recipe?.archivedAt).toBeInstanceOf(Date)
+
+    // Vrije maaltijd behoudt titel en notitie bij verplaatsen.
+    const movedFree = await movePlannedMeal(a, free.id, { date: '2027-01-02', version: 1 })
+    expect(movedFree).toMatchObject({
+      date: '2027-01-02',
+      version: 2,
+      kind: 'free',
+      title: 'Restjes',
+      note: 'Uit de koelkast',
+    })
   })
 })

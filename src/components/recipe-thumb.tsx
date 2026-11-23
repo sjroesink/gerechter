@@ -21,6 +21,7 @@ export function RecipeThumb({
         }}
         src={photoUrl}
         alt=""
+        draggable={false}
         loading="lazy"
         referrerPolicy="no-referrer"
         className={cx('shrink-0 bg-muted object-cover', className)}
