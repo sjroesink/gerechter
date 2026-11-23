@@ -15,7 +15,7 @@ test.beforeAll(async () => {
   expect(new URL(E2E_DATABASE_URL).pathname).toBe('/gerechter_e2e')
   const [household] = await sql(`select id from household where name = 'Huishouden van Beheerder'`)
   await sql(
-    'insert into recipe (id, household_id, name, normalized_name, servings) values ($1, $2, $3, $4, 2)',
+    'insert into recipe (id, household_id, name, normalized_name, servings) values ($1, $2, $3, $4, $5)',
     [ids.recipeA, household.id, 'Pasta pesto weektest', 'pasta pesto weektest', 2],
   )
   await sql(
